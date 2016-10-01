@@ -1,8 +1,8 @@
 package so.blacklight.swarm
 
-import akka.actor.{ActorRef, ActorSystem, Inbox, PoisonPill}
-import so.blacklight.swarm.echo.EchoListener
-import so.blacklight.swarm.smtp.{SMTPConfig, SMTPListener}
+import akka.actor.{ActorSystem, Inbox, PoisonPill, Props}
+import so.blacklight.swarm.echo.EchoService
+import so.blacklight.swarm.smtp.SMTPService
 
 /**
   */
@@ -14,10 +14,8 @@ class SwarmServer {
 
   val inbox = Inbox.create(system)
 
-  val smtpListener = system.actorOf(SMTPListener.props(SMTPConfig(25, false)), "smtp-listener")
-  val smtpSSLListener = system.actorOf(SMTPListener.props(SMTPConfig(465, true)), "smtp-ssl-listener")
-  val echoListener = system.actorOf(EchoListener.props, "echo-listener")
-  //val generator = system.actorOf(Props[MessageGenerator], "messageGenerator")
+  val smtpService = system.actorOf(Props[SMTPService], "smtpService")
+  val echoService = system.actorOf(Props[EchoService], "echoService")
 
   def start = {
     //generator.tell(MessageReceived, ActorRef.noSender)
@@ -25,6 +23,7 @@ class SwarmServer {
 
   def stop = {
     // let actors finish their current tasks then shut down
-    smtpListener ! PoisonPill
+    echoService ! PoisonPill
+    smtpService ! PoisonPill
   }
 }
