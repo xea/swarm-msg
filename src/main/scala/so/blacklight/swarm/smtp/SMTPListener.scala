@@ -1,11 +1,13 @@
 package so.blacklight.swarm.smtp
 
-import java.net.InetSocketAddress
+import java.net.{InetSocketAddress, ServerSocket, Socket}
+import java.security.SecureRandom
+import javax.net.ServerSocketFactory
+import javax.net.ssl.{SSLContext, SSLServerSocket}
 
-import akka.actor.{Actor, Props}
+import akka.actor.{Actor, ActorRef, Props}
 import akka.event.Logging
-import akka.io.Tcp.{Bind, Bound, CommandFailed, Connected}
-import akka.io.{IO, Tcp}
+import so.blacklight.swarm.net.tls.PermissiveTrustManager
 
 /**
   */
@@ -13,7 +15,9 @@ class SMTPListener(config: SMTPConfig) extends Actor {
 
   val logger = Logging(context.system, this)
 
-  IO(Tcp) ! Bind(self, new InetSocketAddress("0.0.0.0", config.listenPort))
+	var listenSocket: Option[ServerSocket] = None
+
+	var dispatcher: Option[ActorRef] = None
 
   override def preStart = {
     super.preStart
@@ -23,6 +27,8 @@ class SMTPListener(config: SMTPConfig) extends Actor {
     } else {
       logger.info("SMTP Listener starting up")
     }
+
+		listenSocket = Some(listen)
   }
 
   override def postStop = {
@@ -31,11 +37,45 @@ class SMTPListener(config: SMTPConfig) extends Actor {
   }
 
   override def receive: Receive = {
-    case b @ Bound(localAddress) => ()
-    case c @ Connected(remote, local) => ()
-    case CommandFailed(_: Bind) => context stop self
+		case AcceptConnections => {
+			dispatcher = Some(sender())
+
+			listenSocket.map(socket => {
+				socket.bind(new InetSocketAddress("0.0.0.0", config.listenPort))
+
+				// TODO make this a teeeensy bit nicer, probably using futures and stream sources
+				while (true) {
+					listenSocket.map(ss => ss.accept()).map(cs => dispatcher.map(dp => dp ! ClientConnected(cs)))
+				}
+			})
+		}
     case _ => logger.warning("SMTPListener has received an unknown message")
   }
+
+	def listen() = {
+		val socket = if (config.ssl) {
+			createTLSListenSocket
+		} else {
+			createListenSocket
+		}
+
+		socket
+	}
+
+	def createTLSListenSocket: ServerSocket = {
+		val context = SSLContext.getInstance("TLSv1.2")
+		context.init(Array(), Array(new PermissiveTrustManager()), new SecureRandom())
+
+		val socketFactory = context.getServerSocketFactory
+		val socket = socketFactory.createServerSocket.asInstanceOf[SSLServerSocket]
+		socket.setUseClientMode(false)
+		socket
+	}
+
+	def createListenSocket: ServerSocket = {
+		val socketFactory = ServerSocketFactory.getDefault
+		socketFactory.createServerSocket
+	}
 }
 
 object SMTPListener {
@@ -48,3 +88,6 @@ object SMTPListener {
   def props(config: SMTPConfig): Props = Props(new SMTPListener(config))
 
 }
+
+case object AcceptConnections
+case class ClientConnected(remote: Socket)

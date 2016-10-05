@@ -7,8 +7,10 @@ import akka.actor.Actor
   */
 class SMTPService extends Actor {
 
-  val smtpListener = context.actorOf(SMTPListener.props(SMTPConfig(25, false)), "smtp-listener")
-  val smtpSSLListener = context.actorOf(SMTPListener.props(SMTPConfig(465, true)), "smtp-ssl-listener")
+  val smtpListener = context.actorOf(SMTPListener.props(SMTPConfig(1025, false)), "smtp-listener")
+  val smtpSSLListener = context.actorOf(SMTPListener.props(SMTPConfig(1465, true)), "smtp-ssl-listener")
+
+  val smtpRouter 
 
   override def receive: Receive = {
     case _ => ()
