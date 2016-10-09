@@ -7,21 +7,20 @@ import akka.actor.Actor
 import akka.stream.ActorMaterializer
 import akka.stream.TLSProtocol.{SslTlsInbound, SslTlsOutbound}
 import akka.stream.scaladsl.Source
-
-case class TriggerStream();
+import so.blacklight.swarm.control.StartService
 
 /**
 	*
 	*/
 class StreamService extends Actor {
 
-	val source: Source[Int, NotUsed] = Source(1 to 100)
+	val source: Source[Int, NotUsed] = Source(1 to 10)
 
 	implicit val system = context.system
 	implicit val materializer = ActorMaterializer()
 
 	override def receive: Receive = {
-		case TriggerStream => {
+		case StartService => {
 			source.runForeach(i => println(i))
 		}
 		case _ => ()
