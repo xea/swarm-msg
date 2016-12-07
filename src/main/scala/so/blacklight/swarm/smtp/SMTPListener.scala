@@ -13,6 +13,8 @@ import so.blacklight.swarm.net.tls.PermissiveTrustManager
   */
 class SMTPListener(config: SMTPConfig) extends Actor {
 
+	private val TLS_VERSION = "TLSv1.2"
+
   val logger = Logging(context.system, this)
 
 	var listenSocket: Option[ServerSocket] = None
@@ -45,10 +47,11 @@ class SMTPListener(config: SMTPConfig) extends Actor {
 
 				// TODO make this a teeeensy bit nicer, probably using futures and stream sources
 				while (true) {
-					listenSocket.map(ss => ss.accept()).map(cs => dispatcher.map(dp => dp ! ClientConnected(cs)))
+					listenSocket.map(serverSocket => serverSocket.accept()).map(clientSocket => dispatcher.map(dp => dp ! ClientConnected(clientSocket)))
 				}
 			})
 		}
+		case ClientQuit => logger.info("Client disconnected")
     case _ => logger.warning("SMTPListener has received an unknown message")
   }
 
@@ -63,7 +66,7 @@ class SMTPListener(config: SMTPConfig) extends Actor {
 	}
 
 	def createTLSListenSocket: ServerSocket = {
-		val context = SSLContext.getInstance("TLSv1.2")
+		val context = SSLContext.getInstance(TLS_VERSION)
 		context.init(Array(), Array(new PermissiveTrustManager()), new SecureRandom())
 
 		val socketFactory = context.getServerSocketFactory
@@ -91,3 +94,4 @@ object SMTPListener {
 
 case object AcceptConnections
 case class ClientConnected(remote: Socket)
+case object ClientQuit

@@ -6,7 +6,7 @@ import akka.routing.{ActorRefRoutee, Router, SmallestMailboxPool, SmallestMailbo
 import so.blacklight.swarm.control.StartService
 
 /**
-  * Created by xea on 10/1/2016.
+  *
   */
 class SMTPService extends Actor {
 
@@ -33,7 +33,9 @@ class SMTPService extends Actor {
   })
   */
 
-  val smtpRouter = context.actorOf(SmallestMailboxPool(5).props(Props[SMTPConnector]))
+  private val NUMBER_OF_CONNECTORS: Int = 8
+
+  private val smtpRouter = context.actorOf(SmallestMailboxPool(NUMBER_OF_CONNECTORS).props(Props[SMTPConnector]))
 
   override def receive: Receive = {
     case StartService => startService
@@ -42,8 +44,8 @@ class SMTPService extends Actor {
   }
 
   def startService = {
-    smtpListener.!(AcceptConnections)(smtpRouter)
-    smtpSSLListener.!(AcceptConnections)(smtpRouter)
+    (smtpListener ! AcceptConnections)(smtpRouter)
+    (smtpSSLListener ! AcceptConnections)(smtpRouter)
   }
 
   def handleWorkerTermination(worker: ActorRef) = {

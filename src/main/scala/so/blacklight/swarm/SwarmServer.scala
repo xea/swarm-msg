@@ -12,19 +12,19 @@ class SwarmServer {
 
   private val ACTOR_SYSTEM_NAME = "swarm"
 
-  val system = ActorSystem(ACTOR_SYSTEM_NAME)
+  private val system = ActorSystem(ACTOR_SYSTEM_NAME)
 
-  val inbox = Inbox.create(system)
+  private val inbox = Inbox.create(system)
 
   val smtpService = system.actorOf(Props[SMTPService], "smtpService")
   val echoService = system.actorOf(Props[EchoService], "echoService")
 	//val streamService = system.actorOf(Props[StreamService], "streamService")
 
-  def start = {
+  def start(): Unit = {
     smtpService ! StartService
   }
 
-  def stop = {
+  def stop(): Unit = {
     // let services finish their current tasks then shut down
     echoService ! PoisonPill
     smtpService ! PoisonPill
