@@ -30,7 +30,7 @@ class SMTPListener(config: SMTPConfig) extends Actor {
       logger.info("SMTP Listener starting up")
     }
 
-		listenSocket = Some(listen)
+		listenSocket = Some(listen())
   }
 
   override def postStop = {

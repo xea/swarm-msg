@@ -29,3 +29,4 @@ case object SMTPClientUnknownCommand extends SMTPClientEvent
 
 case object SMTPServerOk extends SMTPServerEvent
 case object SMTPServerDataOk extends SMTPServerEvent
+case object SMTPServerQuit extends SMTPServerEvent

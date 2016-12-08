@@ -18,11 +18,27 @@ class SMTPClientSession(clientSocket: Socket) extends Actor {
 
 		msg match {
 			case SMTPServerGreeting(greeting) => writeln(s"220 $greeting", alwaysFlush)
+			case SMTPServerEhlo(capabilities) => {
+				capabilities.init.foreach(capability => writeln(s"250-$capability"))
+				Option(capabilities.last).map(capability => writeln(s"250 $capability"))
+			}
+			case SMTPServerDataOk => {
+				write(s"341 OK")
+			}
 			case SMTPServerOk => writeln("250 OK")
+			case SMTPServerQuit => writeln("250 OK")
 		}
 	}
 
 	override def receive: Receive = {
+		case msg @ SMTPServerDataOk =>
+			send(msg)
+			sender() ! readData()
+		case msg @ SMTPServerQuit =>
+			send(msg)
+			writer.close()
+			reader.close()
+			clientSocket.close()
 		case msg => {
 			send(msg)
 			sender() ! readReply()
@@ -39,9 +55,13 @@ class SMTPClientSession(clientSocket: Socket) extends Actor {
 			case SMTPPattern.data() => {
 				SMTPClientDataBegin
 			}
-			case SMTPPattern.quit => SMTPClientQuit
+			case SMTPPattern.quit() => SMTPClientQuit
 			case _ => SMTPClientUnknownCommand
 		}
+	}
+
+	def readData(): SMTPClientDataEnd = {
+		SMTPClientDataEnd("User contents")
 	}
 
 	protected def writeln(msg: String, flush: Boolean = true): Unit = {
@@ -71,6 +91,6 @@ object SMTPPattern {
 	val mailFrom = "^(?i)MAIL FROM:\\s*(.*)\\s*$".r
 	val rcptTo = "^(?i)RCPT TO:\\s*(.*)\\s*$".r
 	val data = "^(?i)DATA$".r
-	val quit = "QUIT"
+	val quit = "^(?i)QUIT$".r
 }
 

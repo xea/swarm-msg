@@ -9,31 +9,33 @@ class SMTPProtocolHandler(clientSession: ActorRef) extends Actor {
 
 	val logger = Logging(context.system, this)
 
-	/*
-  override def receive: Receive = {
-    case greeting @ SMTPServerGreeting(_) =>
-			clientSession.send(greeting)
-			clientSession.readReply() match {
-				case mailFrom @ SMTPClientMailFrom(_) => {
-					clientSession.send(SMTPServerOk)
-				}
-				case SMTPClientQuit => sender() ! ClientQuit
-				case _ => println("Got answer")
-			}
-		case msg => logger.warning(s"Unrecognised protocol message: $msg")
-  }
-  */
-
 	override def receive: Receive = {
 		case greeting @ SMTPServerGreeting(_) =>
 			clientSession ! greeting
-			become(expectMail)
+			become(expectEhlo)
 	}
 
-	def expectMail: PartialFunction[Any, Unit] = {
+	def expectEhlo: PartialFunction[Any, Unit] = {
 		case SMTPClientEhlo(hostId) => {
 			println(s"Got client $hostId")
-			unbecome()
+			sender() ! SMTPServerEhlo(Array("THIS", "THAT"))
+			become(expectEmail)
+			//unbecome()
+		}
+	}
+
+	def expectEmail: PartialFunction[Any, Unit] = {
+		case SMTPClientMailFrom(sender) => {
+			println(s"Look $sender wants to send a message")
+		}
+		case SMTPClientDataBegin => {
+			sender() ! SMTPServerDataOk
+		}
+		case SMTPClientReset => {
+
+		}
+		case SMTPClientQuit => {
+			sender() ! SMTPServerQuit
 		}
 	}
 }
