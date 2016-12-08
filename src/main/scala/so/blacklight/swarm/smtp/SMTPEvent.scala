@@ -1,6 +1,7 @@
 package so.blacklight.swarm.smtp
 
-trait SMTPClientEvent;
+trait SMTPClientEvent
+trait SMTPServerEvent
 
 /**
   */
@@ -17,5 +18,14 @@ case class SMTPClientEhlo(hostId: String) extends SMTPClientEvent
 // 250 8BITMIME
 case class SMTPServerEhlo(capabilities: Array[String])
 
+// eg. MAIL FROM: <user@company.com>
+case class SMTPClientMailFrom(sender: String) extends SMTPClientEvent
+case class SMTPClientReceiptTo(recipient: String) extends SMTPClientEvent
+case object SMTPClientDataBegin extends SMTPClientEvent
+case class SMTPClientDataEnd(data: String) extends SMTPClientEvent
+case object SMTPClientReset extends SMTPClientEvent
 case object SMTPClientQuit extends SMTPClientEvent
 case object SMTPClientUnknownCommand extends SMTPClientEvent
+
+case object SMTPServerOk extends SMTPServerEvent
+case object SMTPServerDataOk extends SMTPServerEvent
