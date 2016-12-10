@@ -17,13 +17,13 @@ class SMTPClientSession(clientSocket: Socket) extends Actor {
 		val alwaysFlush = true
 
 		msg match {
-			case SMTPServerGreeting(greeting) => writeln(s"220 $greeting", alwaysFlush)
+			case SMTPServerGreeting(greeting) => writeln(s"220 $greeting")
 			case SMTPServerEhlo(capabilities) => {
 				capabilities.init.foreach(capability => writeln(s"250-$capability"))
 				Option(capabilities.last).map(capability => writeln(s"250 $capability"))
 			}
 			case SMTPServerDataOk => {
-				write(s"341 OK")
+				writeln(s"341 OK")
 			}
 			case SMTPServerOk => writeln("250 OK")
 			case SMTPServerQuit => writeln("250 OK")

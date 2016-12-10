@@ -17,22 +17,26 @@ class SMTPProtocolHandler(clientSession: ActorRef) extends Actor {
 
 	def expectEhlo: PartialFunction[Any, Unit] = {
 		case SMTPClientEhlo(hostId) => {
-			println(s"Got client $hostId")
+			logger.info(s"Received client connection from: $hostId")
 			sender() ! SMTPServerEhlo(Array("THIS", "THAT"))
 			become(expectEmail)
-			//unbecome()
 		}
 	}
 
 	def expectEmail: PartialFunction[Any, Unit] = {
-		case SMTPClientMailFrom(sender) => {
-			println(s"Look $sender wants to send a message")
+		case SMTPClientMailFrom(mailFrom) => {
+			println(s"Look, $mailFrom wants to send a message")
+			sender() ! SMTPServerOk
+		}
+		case SMTPClientReceiptTo(recipient) => {
+			println(s"Furthermore, the recipient is $recipient")
+			sender() ! SMTPServerOk
 		}
 		case SMTPClientDataBegin => {
 			sender() ! SMTPServerDataOk
 		}
 		case SMTPClientReset => {
-
+			unbecome()
 		}
 		case SMTPClientQuit => {
 			sender() ! SMTPServerQuit

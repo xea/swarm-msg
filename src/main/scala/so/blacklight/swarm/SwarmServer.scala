@@ -18,7 +18,6 @@ class SwarmServer {
 
   val smtpService = system.actorOf(Props[SMTPService], "smtpService")
   val echoService = system.actorOf(Props[EchoService], "echoService")
-	//val streamService = system.actorOf(Props[StreamService], "streamService")
 
   def start(): Unit = {
     smtpService ! StartService

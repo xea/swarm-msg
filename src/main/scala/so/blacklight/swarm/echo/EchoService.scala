@@ -4,7 +4,6 @@ import akka.actor.Actor
 import akka.event.Logging
 
 /**
-  * Created by xea on 10/1/2016.
   */
 class EchoService extends Actor {
 

@@ -2,7 +2,7 @@ package so.blacklight.swarm.smtp
 
 import akka.actor.{Actor, ActorRef, Props, Terminated}
 import akka.event.Logging
-import akka.routing.{ActorRefRoutee, Router, SmallestMailboxPool, SmallestMailboxRoutingLogic}
+import akka.routing.SmallestMailboxPool
 import so.blacklight.swarm.control.StartService
 
 /**
@@ -38,12 +38,12 @@ class SMTPService extends Actor {
   private val smtpRouter = context.actorOf(SmallestMailboxPool(NUMBER_OF_CONNECTORS).props(Props[SMTPConnector]))
 
   override def receive: Receive = {
-    case StartService => startService
+    case StartService => startService()
     case Terminated(worker) => handleWorkerTermination(worker)
     case _ => ()
   }
 
-  def startService = {
+  def startService() = {
     (smtpListener ! AcceptConnections)(smtpRouter)
     (smtpSSLListener ! AcceptConnections)(smtpRouter)
   }
