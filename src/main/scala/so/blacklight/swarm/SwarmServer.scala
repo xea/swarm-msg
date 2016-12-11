@@ -16,8 +16,8 @@ class SwarmServer {
 
   private val inbox = Inbox.create(system)
 
-  val smtpService = system.actorOf(Props[SMTPService], "smtpService")
-  val echoService = system.actorOf(Props[EchoService], "echoService")
+  private val smtpService = system.actorOf(Props[SMTPService], "smtpService")
+  private val echoService = system.actorOf(Props[EchoService], "echoService")
 
   def start(): Unit = {
     smtpService ! StartService

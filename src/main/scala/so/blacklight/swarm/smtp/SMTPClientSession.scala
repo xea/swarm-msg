@@ -4,6 +4,7 @@ import java.io.{BufferedReader, BufferedWriter, InputStreamReader, OutputStreamW
 import java.net.Socket
 
 import akka.actor.{Actor, Props}
+import akka.event.Logging
 
 /**
 	*
