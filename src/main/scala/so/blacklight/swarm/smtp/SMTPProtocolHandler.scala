@@ -23,8 +23,7 @@ class SMTPProtocolHandler(clientSession: ActorRef) extends Actor {
 
 	def expectEhlo: PartialFunction[Any, Unit] = {
 		case SMTPClientEhlo(hostId) =>
-			logger.info(s"Received client connection from: $hostId")
-			sender() ! SMTPServerEhlo(Array("THIS", "THAT"))
+			sender() ! processEhlo(hostId)
 			become(expectEmail)
 
 		case SMTPClientQuit =>
@@ -45,7 +44,7 @@ class SMTPProtocolHandler(clientSession: ActorRef) extends Actor {
 			sender() ! processDataRequest
 
 		case SMTPClientDataEnd(msg) =>
-			logger.info(s"Finished SMTP transaction, send ${msg.length} bytes")
+			logger.info(s"Received SMTP message, size: ${msg.length} bytes")
 			sender() ! SMTPServerOk
 
 		case SMTPClientReset =>
@@ -56,6 +55,11 @@ class SMTPProtocolHandler(clientSession: ActorRef) extends Actor {
 
 		case unknownMessage =>
 			logger.warning(s"Received unknown event: $unknownMessage")
+	}
+
+	private def processEhlo(hostname: String): SMTPServerEvent = {
+		logger.info(s"Received client connection from: $hostname")
+		SMTPServerEhlo(Array("THIS", "THAT"))
 	}
 
 	private def processMailFrom(sender: String): SMTPServerEvent = {

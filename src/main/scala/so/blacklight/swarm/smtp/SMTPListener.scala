@@ -21,7 +21,7 @@ class SMTPListener(config: SMTPConfig) extends Actor {
 
 	var dispatcher: Option[ActorRef] = None
 
-  override def preStart = {
+  override def preStart: Unit = {
     super.preStart
 
     if (config.ssl) {
@@ -33,7 +33,7 @@ class SMTPListener(config: SMTPConfig) extends Actor {
 		listenSocket = Some(listen())
   }
 
-  override def postStop = {
+  override def postStop: Unit = {
     super.postStop
     logger.info("SMTP Listener has been stopped")
   }
@@ -42,12 +42,13 @@ class SMTPListener(config: SMTPConfig) extends Actor {
 		case AcceptConnections => {
 			dispatcher = Some(sender())
 
-			listenSocket.map(socket => {
+			listenSocket.foreach(socket => {
 				socket.bind(new InetSocketAddress("0.0.0.0", config.listenPort))
 
 				// TODO make this a teeeensy bit nicer, probably using futures and stream sources
 				while (true) {
-					listenSocket.map(serverSocket => serverSocket.accept()).map(clientSocket => dispatcher.map(dp => dp ! ClientConnected(clientSocket)))
+					listenSocket.map(serverSocket => serverSocket.accept())
+						.map(clientSocket => dispatcher.map(dp => dp ! ClientConnected(clientSocket)))
 				}
 			})
 		}
@@ -55,7 +56,7 @@ class SMTPListener(config: SMTPConfig) extends Actor {
     case _ => logger.warning("SMTPListener has received an unknown message")
   }
 
-	def listen() = {
+	def listen(): ServerSocket = {
 		val socket = if (config.ssl) {
 			createTLSListenSocket
 		} else {

@@ -37,7 +37,7 @@ case class SMTPClientEhlo(hostId: String) extends SMTPClientEvent
 // 250-VRFY
 // 250-STARTTLS
 // 250 8BITMIME
-case class SMTPServerEhlo(capabilities: Array[String])
+case class SMTPServerEhlo(capabilities: Array[String]) extends SMTPServerEvent
 
 // eg. MAIL FROM: <user@company.com>
 case class SMTPClientMailFrom(sender: String) extends SMTPClientEvent

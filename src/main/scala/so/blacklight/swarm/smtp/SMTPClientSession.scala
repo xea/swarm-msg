@@ -101,8 +101,6 @@ class SMTPClientSession(clientSocket: Socket) extends Actor {
 	protected def write(msg: Array[Char], flush: Boolean = true): Unit = {
 		writer.write(msg)
 
-		print(s"> ${msg.mkString}")
-
 		if (flush) {
 			writer.flush()
 		}
@@ -139,6 +137,6 @@ object SMTPReplyMessages {
 	def ehloSyntaxParams: String = "501 Syntax error in parameters"
 
 	// DATA reply codes
-	def dataReady: String = "451 Start mail input, end with <CRLF>.<CRLF>"
+	def dataReady: String = "354 Start mail input, end with <CRLF>.<CRLF>"
 	def dataOk: String = "250 Mail accepted"
 }
