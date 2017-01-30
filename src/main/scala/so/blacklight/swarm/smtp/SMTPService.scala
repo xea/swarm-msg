@@ -13,8 +13,8 @@ class SMTPService extends Actor {
   val logger = Logging(context.system, this)
 
   // TODO assign port numbers from configuration
-  val smtpListener = context.actorOf(SMTPListener.props(SMTPConfig(1025, false)), "smtp-listener")
-  val smtpSSLListener = context.actorOf(SMTPListener.props(SMTPConfig(1465, true)), "smtp-ssl-listener")
+  val smtpListener: ActorRef = context.actorOf(SMTPListener.props(SMTPConfig(1025, false)), "smtp-listener")
+  val smtpSSLListener: ActorRef = context.actorOf(SMTPListener.props(SMTPConfig(1465, true)), "smtp-ssl-listener")
 
   /**
     * Reminder of routing logics:

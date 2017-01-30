@@ -36,9 +36,9 @@ class SMTPClientSession(clientSocket: Socket) extends Actor {
 			sender() ! readData()
 		case msg @ SMTPServerQuit =>
 			send(msg)
-			writer.close()
-			reader.close()
-			clientSocket.close()
+			closeConnection()
+		// If the message does not have a specific handler, then we'll just send it to the client
+		// and expect a one-line reply
 		case msg =>
 			send(msg)
 			sender() ! readReply()
@@ -72,11 +72,20 @@ class SMTPClientSession(clientSocket: Socket) extends Actor {
 	def readData(): SMTPClientDataEnd = {
 		// TODO return an Either object representing a possible error
 		val msg = Stream.continually(() => reader.readLine())
-			.map(f => f())
-			.takeWhile(s => !s.equals("."))
-		  .mkString("")
+			.map(_())
+			.takeWhile(!_.equals("."))
+		  .mkString
 
 		SMTPClientDataEnd(msg)
+	}
+
+	/**
+		* Assume that the SMTP transmission has been finished and close the connection
+		*/
+	def closeConnection(): Unit = {
+		writer.close()
+		reader.close()
+		clientSocket.close()
 	}
 
 	/**
@@ -86,8 +95,6 @@ class SMTPClientSession(clientSocket: Socket) extends Actor {
 		* @param flush output buffer flush required?
 		*/
 	protected def writeln(msg: String, flush: Boolean = true): Unit = {
-		val dontFlush = false
-
 		write(msg.toCharArray ++ Array('\r', '\n'), flush)
 	}
 

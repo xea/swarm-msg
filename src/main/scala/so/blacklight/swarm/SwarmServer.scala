@@ -5,6 +5,7 @@ import so.blacklight.swarm.control.StartService
 import so.blacklight.swarm.echo.EchoService
 import so.blacklight.swarm.http.HttpService
 import so.blacklight.swarm.smtp.SMTPService
+import so.blacklight.swarm.storage.ObjectStorage
 
 /**
 	* Orchestrates the collection of defined services on a swarm node.
@@ -21,10 +22,12 @@ class SwarmServer {
 	private val smtpService = system.actorOf(Props[SMTPService], "smtpService")
 	private val echoService = system.actorOf(Props[EchoService], "echoService")
 	private val httpService = system.actorOf(Props[HttpService], "httpService")
+	private val storageService = system.actorOf(Props[ObjectStorage], "objectStorageService")
 
 	def start(): Unit = {
 		smtpService ! StartService
 		httpService ! StartService
+		storageService ! StartService
 	}
 
 	def stop(): Unit = {
@@ -32,5 +35,6 @@ class SwarmServer {
 		echoService ! PoisonPill
 		smtpService ! PoisonPill
 		httpService ! PoisonPill
+		storageService ! PoisonPill
 	}
 }

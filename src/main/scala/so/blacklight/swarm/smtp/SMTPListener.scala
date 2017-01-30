@@ -45,11 +45,12 @@ class SMTPListener(config: SMTPConfig) extends Actor {
 			listenSocket.foreach(socket => {
 				socket.bind(new InetSocketAddress("0.0.0.0", config.listenPort))
 
-				// TODO make this a teeeensy bit nicer, probably using futures and stream sources
-				while (true) {
-					listenSocket.map(serverSocket => serverSocket.accept())
-						.map(clientSocket => dispatcher.map(dp => dp ! ClientConnected(clientSocket)))
-				}
+				Stream.continually(listenSocket)
+					.filter(_.isDefined)
+					.map(_.get)
+					.map(_.accept())
+					.takeWhile(_ => true)
+					.foreach(clientSocket => dispatcher.foreach(dp => dp ! ClientConnected(clientSocket)))
 			})
 		}
 		case ClientQuit => logger.info("Client disconnected")

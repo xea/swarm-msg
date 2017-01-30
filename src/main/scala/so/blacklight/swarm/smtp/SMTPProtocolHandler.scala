@@ -44,8 +44,7 @@ class SMTPProtocolHandler(clientSession: ActorRef) extends Actor {
 			sender() ! processDataRequest
 
 		case SMTPClientDataEnd(msg) =>
-			logger.info(s"Received SMTP message, size: ${msg.length} bytes")
-			sender() ! SMTPServerOk
+			sender() ! processDataSent(msg)
 
 		case SMTPClientReset =>
 			unbecome()
@@ -75,6 +74,11 @@ class SMTPProtocolHandler(clientSession: ActorRef) extends Actor {
 	private def processDataRequest: SMTPServerEvent = {
 		logger.info("Received DATA request")
 		SMTPServerDataOk
+	}
+
+	private def processDataSent(msg: String): SMTPServerEvent = {
+		logger.info(s"Received SMTP message, size: ${msg.length} bytes")
+		SMTPServerOk
 	}
 }
 

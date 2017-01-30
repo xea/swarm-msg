@@ -6,7 +6,6 @@ import akka.actor.{Actor, ActorRef}
 import akka.event.Logging
 
 /**
-  *
   */
 class SMTPConnector extends Actor {
 
@@ -16,7 +15,7 @@ class SMTPConnector extends Actor {
 
   override def receive: Receive = {
     case ClientConnected(clientSocket) => processConnection(clientSocket)
-		case ClientQuit => println("Precious client has quit")
+		case ClientQuit => processQuit()
     case _ => println("Received message")
   }
 
@@ -34,5 +33,8 @@ class SMTPConnector extends Actor {
     protocolHandler ! SMTPServerGreeting("Swarm SMTP")
   }
 
+	def processQuit(): Unit = {
+		println("Precious client has quit")
+	}
 }
 
