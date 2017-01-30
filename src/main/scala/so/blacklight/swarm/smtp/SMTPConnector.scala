@@ -21,10 +21,12 @@ class SMTPConnector extends Actor {
   }
 
   def processConnection(clientSocket: Socket): Unit = {
-    logger.info(s"Processing connection from ${clientSocket.getRemoteSocketAddress.toString}")
+		val remoteAddress = clientSocket.getRemoteSocketAddress.toString
 
-		val clientSessionId = s"clientSession-${clientSocket.getRemoteSocketAddress.toString.replaceAll("/", "")}"
-		val protocolHandlerId = s"smtpProtoclHandler-${clientSocket.getRemoteSocketAddress.toString.replaceAll("/", "")}"
+    logger.info(s"Processing connection from $remoteAddress")
+
+		val clientSessionId = s"clientSession-${remoteAddress.replaceAll("/", "")}"
+		val protocolHandlerId = s"smtpProtocolHandler-${remoteAddress.replaceAll("/", "")}"
 
 		val clientSession = context.actorOf(SMTPClientSession.props(clientSocket), clientSessionId)
     val protocolHandler = context.actorOf(SMTPProtocolHandler.props(clientSession), protocolHandlerId)

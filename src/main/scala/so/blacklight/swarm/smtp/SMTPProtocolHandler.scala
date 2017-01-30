@@ -3,6 +3,12 @@ package so.blacklight.swarm.smtp
 import akka.actor.{Actor, ActorRef, Props}
 import akka.event.Logging
 
+/**
+	* Impelments the SMTP protocol by supervising the lower level client session and deciding
+	* what replies to send to the clients' requests.
+	*
+	* @param clientSession client session
+	*/
 class SMTPProtocolHandler(clientSession: ActorRef) extends Actor {
 
 	import context._
@@ -16,31 +22,55 @@ class SMTPProtocolHandler(clientSession: ActorRef) extends Actor {
 	}
 
 	def expectEhlo: PartialFunction[Any, Unit] = {
-		case SMTPClientEhlo(hostId) => {
+		case SMTPClientEhlo(hostId) =>
 			logger.info(s"Received client connection from: $hostId")
 			sender() ! SMTPServerEhlo(Array("THIS", "THAT"))
 			become(expectEmail)
-		}
+
+		case SMTPClientQuit =>
+			sender() ! SMTPServerQuit
+
+		case unknownMessage =>
+			logger.warning(s"Received unknown event: $unknownMessage")
 	}
 
 	def expectEmail: PartialFunction[Any, Unit] = {
-		case SMTPClientMailFrom(mailFrom) => {
-			println(s"Look, $mailFrom wants to send a message")
+		case SMTPClientMailFrom(mailFrom) =>
+			sender() ! processMailFrom(mailFrom)
+
+		case SMTPClientReceiptTo(recipient) =>
+			sender() ! processReceiptTo(recipient)
+
+		case SMTPClientDataBegin =>
+			sender() ! processDataRequest
+
+		case SMTPClientDataEnd(msg) =>
+			logger.info(s"Finished SMTP transaction, send ${msg.length} bytes")
 			sender() ! SMTPServerOk
-		}
-		case SMTPClientReceiptTo(recipient) => {
-			println(s"Furthermore, the recipient is $recipient")
-			sender() ! SMTPServerOk
-		}
-		case SMTPClientDataBegin => {
-			sender() ! SMTPServerDataOk
-		}
-		case SMTPClientReset => {
+
+		case SMTPClientReset =>
 			unbecome()
-		}
-		case SMTPClientQuit => {
+
+		case SMTPClientQuit =>
 			sender() ! SMTPServerQuit
-		}
+
+		case unknownMessage =>
+			logger.warning(s"Received unknown event: $unknownMessage")
+	}
+
+	private def processMailFrom(sender: String): SMTPServerEvent = {
+		logger.info(s"Sender: $sender")
+		SMTPServerOk
+	}
+
+	private def processReceiptTo(recipient: String): SMTPServerEvent = {
+		logger.info(s"Recipient: $recipient")
+		SMTPServerOk
+	}
+
+	private def processDataRequest: SMTPServerEvent = {
+		logger.info("Received DATA request")
+		SMTPServerDataOk
 	}
 }
 
