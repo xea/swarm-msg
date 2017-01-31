@@ -8,6 +8,7 @@ import javax.net.ssl.{SSLContext, SSLServerSocket}
 import akka.actor.{Actor, ActorRef, Props}
 import akka.event.Logging
 import so.blacklight.swarm.net.tls.PermissiveTrustManager
+import so.blacklight.swarm.stats.IncrementCounter
 
 /**
   */
@@ -50,7 +51,10 @@ class SMTPListener(config: SMTPConfig) extends Actor {
 					.map(_.get)
 					.map(_.accept())
 					.takeWhile(_ => true)
-					.foreach(clientSocket => dispatcher.foreach(dp => dp ! ClientConnected(clientSocket)))
+					.foreach(clientSocket => dispatcher.foreach(dp => {
+						context.actorSelection("/user/statService") ! IncrementCounter("smtp.connections")
+						dp ! ClientConnected(clientSocket)
+					}))
 			})
 		}
 		case ClientQuit => logger.info("Client disconnected")

@@ -1,10 +1,17 @@
 package so.blacklight.swarm.http
 
+import java.util.concurrent.TimeUnit
+
 import akka.actor.Actor
 import akka.event.Logging
-import spark.Spark.{before, get, post, stop}
+import akka.pattern.ask
+import akka.util.Timeout
 import so.blacklight.swarm.control.{StartService, StopService}
-import spark.{Filter, Request, Response}
+import so.blacklight.swarm.stats.{BatchCounterValue, CounterValue, GetCounterValue}
+import spark.Spark.{get, stop}
+import spark.{Request, Response}
+
+import scala.concurrent.Await
 
 /**
 	*
@@ -29,14 +36,8 @@ class HttpService extends Actor {
 	}
 
 	private def mountEndpoints(): Unit = {
-		val f: Filter = requireAuthentication;
-		before(f)
 		get("/", showHomePage)
-		get("/get/:emailid", showStatistics)
-	}
-
-	private def requireAuthentication(request: Request, response: Response): Unit = {
-
+		get("/stats", showStatistics)
 	}
 
 	private def showHomePage(request: Request, response: Response): String = {
@@ -44,8 +45,16 @@ class HttpService extends Actor {
 	}
 
 	private def showStatistics(request: Request, response: Response): String = {
-		val emailId = request.params("emailid")
+		implicit val timeout = Timeout(5, TimeUnit.SECONDS)
+		val message = GetCounterValue("*")
 
-		emailId
+		val future = context.actorSelection("/user/statService") ? message
+
+		Await.result(future, timeout.duration) match {
+			case CounterValue(ctr, value) => value.map(stat => s"$ctr: $stat").getOrElse("No statistics found")
+			case BatchCounterValue(values) =>
+				values.map(keyValue => s"${keyValue._1}: ${keyValue._2}").mkString("\n")
+			case _ => "Lofasz se"
+		}
 	}
 }

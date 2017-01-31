@@ -1,10 +1,13 @@
 package so.blacklight.swarm
 
+import javafx.geometry.Pos
+
 import akka.actor.{ActorSystem, Inbox, PoisonPill, Props}
 import so.blacklight.swarm.control.StartService
 import so.blacklight.swarm.echo.EchoService
 import so.blacklight.swarm.http.HttpService
 import so.blacklight.swarm.smtp.SMTPService
+import so.blacklight.swarm.stats.StatService
 import so.blacklight.swarm.storage.ObjectStorage
 
 /**
@@ -22,11 +25,13 @@ class SwarmServer {
 	private val smtpService = system.actorOf(Props[SMTPService], "smtpService")
 	private val echoService = system.actorOf(Props[EchoService], "echoService")
 	private val httpService = system.actorOf(Props[HttpService], "httpService")
+	private val statService = system.actorOf(Props[StatService], "statService")
 	private val storageService = system.actorOf(Props[ObjectStorage], "objectStorageService")
 
 	def start(): Unit = {
 		smtpService ! StartService
 		httpService ! StartService
+		statService ! StartService
 		storageService ! StartService
 	}
 
@@ -35,6 +40,7 @@ class SwarmServer {
 		echoService ! PoisonPill
 		smtpService ! PoisonPill
 		httpService ! PoisonPill
+		statService ! PoisonPill
 		storageService ! PoisonPill
 	}
 }

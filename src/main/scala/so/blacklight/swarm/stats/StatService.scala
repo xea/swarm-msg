@@ -1,0 +1,60 @@
+package so.blacklight.swarm.stats
+
+import akka.actor.Actor
+import so.blacklight.swarm.control.{StartService, StopService}
+
+import scala.collection.JavaConverters._
+import scala.collection.{Map, mutable}
+
+/**
+	*
+	*/
+class StatService extends Actor {
+
+	private val stats = new mutable.HashMap[String, Long]()
+
+	override def receive: Receive = {
+		case StartService => startService()
+		case StopService => stopService()
+		case IncrementCounter(counter) => incrementCounter(counter)
+		case DecrementCounter(counter) => decrementCounter(counter)
+		case GetCounterValue(counter) => sender() ! getCounters(counter)
+	}
+
+	private def startService(): Unit = {
+		stats.clear()
+	}
+
+	private def stopService(): Unit = {
+		stats.clear()
+	}
+
+	private def incrementCounter(counter: String): Unit = {
+		val currentValue = stats.getOrElseUpdate(counter, 0)
+		stats.put(counter, currentValue + 1)
+	}
+
+	private def decrementCounter(counter: String): Unit = {
+		val currentValue = stats.getOrElseUpdate(counter, 0)
+		stats.put(counter, currentValue - 1)
+	}
+
+	private def getCounter(counter: String): StatEvent = {
+		CounterValue(counter, stats.get(counter))
+	}
+
+	/**
+		* Get all counters that match some given pattern (eg. stats.*.counter)
+		* @param counterPattern
+		* @return
+		*/
+	private def getCounters(counterPattern: String): StatEvent = {
+		val preRegex = counterPattern.replaceAllLiterally(".", "\\.").replaceAllLiterally("*", ".*?")
+		val regex = "^" + preRegex + "$"
+
+		val values = stats.filter(_._1.matches(regex)).toMap
+
+		BatchCounterValue(stats.filter(_._1.matches(regex)).toMap)
+	}
+
+}
