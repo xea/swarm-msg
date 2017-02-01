@@ -3,8 +3,7 @@ package so.blacklight.swarm.stats
 import akka.actor.Actor
 import so.blacklight.swarm.control.{StartService, StopService}
 
-import scala.collection.JavaConverters._
-import scala.collection.{Map, mutable}
+import scala.collection.mutable
 
 /**
 	*
@@ -18,7 +17,11 @@ class StatService extends Actor {
 		case StopService => stopService()
 		case IncrementCounter(counter) => incrementCounter(counter)
 		case DecrementCounter(counter) => decrementCounter(counter)
-		case GetCounterValue(counter) => sender() ! getCounters(counter)
+		case GetCounterValue(counter) =>
+			if (counter.contains("*"))
+				sender() ! getCounters(counter)
+			else
+				sender() ! getCounter(counter)
 	}
 
 	private def startService(): Unit = {
@@ -45,8 +48,9 @@ class StatService extends Actor {
 
 	/**
 		* Get all counters that match some given pattern (eg. stats.*.counter)
-		* @param counterPattern
-		* @return
+		*
+		* @param counterPattern the counter pattern
+		* @return a BatchCounterValue message containing all the counters matching the given pattern
 		*/
 	private def getCounters(counterPattern: String): StatEvent = {
 		val preRegex = counterPattern.replaceAllLiterally(".", "\\.").replaceAllLiterally("*", ".*?")
@@ -54,7 +58,7 @@ class StatService extends Actor {
 
 		val values = stats.filter(_._1.matches(regex)).toMap
 
-		BatchCounterValue(stats.filter(_._1.matches(regex)).toMap)
+		BatchCounterValue(values)
 	}
 
 }

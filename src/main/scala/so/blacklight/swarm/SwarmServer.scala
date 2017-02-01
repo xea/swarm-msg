@@ -1,7 +1,5 @@
 package so.blacklight.swarm
 
-import javafx.geometry.Pos
-
 import akka.actor.{ActorSystem, Inbox, PoisonPill, Props}
 import so.blacklight.swarm.control.StartService
 import so.blacklight.swarm.echo.EchoService

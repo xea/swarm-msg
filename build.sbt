@@ -12,3 +12,4 @@ libraryDependencies ++= Seq(
 )
 
 libraryDependencies += "com.sparkjava" % "spark-core" % "2.5.3"
+libraryDependencies += "com.sparkjava" % "spark-template-jade" % "2.3"
