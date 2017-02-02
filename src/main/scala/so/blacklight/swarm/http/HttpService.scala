@@ -1,5 +1,6 @@
 package so.blacklight.swarm.http
 
+import java.util
 import java.util.concurrent.TimeUnit
 
 import akka.actor.Actor
@@ -39,7 +40,7 @@ class HttpService extends Actor {
 	private def mountEndpoints(): Unit = {
 		get("/", showHomePage)
 		get("/stats", showStatistics)
-		get("/hello", (rq, rs) => { new ModelAndView(null, "hello") }, new JadeTemplateEngine())
+		get("/hello", (rq, rs) => showTemplate(rq, rs), new JadeTemplateEngine())
 	}
 
 	private def showHomePage(request: Request, response: Response): String = {
@@ -60,7 +61,9 @@ class HttpService extends Actor {
 	}
 
 	private def showTemplate(request: Request, response: Response): ModelAndView = {
-		new ModelAndView(null, "asdf")
+		val map = new util.HashMap[String, String]()
+		map.put("name", "lofasz")
+		new ModelAndView(map, "test")
 	}
 
 }
