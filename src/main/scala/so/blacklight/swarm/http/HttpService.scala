@@ -9,7 +9,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import so.blacklight.swarm.control.{StartService, StopService}
 import so.blacklight.swarm.stats.{BatchCounterValue, CounterValue, GetCounterValue}
-import spark.Spark.{get, stop}
+import spark.Spark.{get, stop, staticFiles}
 import spark.template.jade.JadeTemplateEngine
 import spark.{ModelAndView, Request, Response}
 
@@ -38,6 +38,8 @@ class HttpService extends Actor {
 	}
 
 	private def mountEndpoints(): Unit = {
+		staticFiles.location("public")
+
 		val jade = new JadeTemplateEngine()
 
 		// TODO pretty printing is here temporarily. Remove when it's not needed any more
