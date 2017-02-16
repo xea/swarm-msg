@@ -43,11 +43,15 @@ case class SMTPServerEhlo(capabilities: Array[String]) extends SMTPServerEvent
 case class SMTPClientMailFrom(sender: String) extends SMTPClientEvent
 case class SMTPClientReceiptTo(recipient: String) extends SMTPClientEvent
 case object SMTPClientDataBegin extends SMTPClientEvent
-case class SMTPClientDataEnd(data: String) extends SMTPClientEvent
+case class SMTPClientDataEnd(msg: Array[Byte]) extends SMTPClientEvent
 case object SMTPClientReset extends SMTPClientEvent
 case object SMTPClientQuit extends SMTPClientEvent
 case object SMTPClientUnknownCommand extends SMTPClientEvent
+case class SMTPClientError(error: ClientError) extends SMTPClientEvent
 
 case object SMTPServerOk extends SMTPServerEvent
 case object SMTPServerDataOk extends SMTPServerEvent
 case object SMTPServerQuit extends SMTPServerEvent
+
+class ClientError extends SMTPClientEvent
+case object ClientDisconnected extends ClientError

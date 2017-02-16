@@ -15,6 +15,10 @@ class SMTPProtocolHandler(clientSession: ActorRef) extends Actor {
 
 	val logger = Logging(context.system, this)
 
+	/**
+		* This is the initial stage of mail processing, switches to "expect EHLO" mode immediately
+		* after issuing the server greeting
+		*/
 	override def receive: Receive = {
 		case greeting @ SMTPServerGreeting(_) =>
 			clientSession ! greeting
@@ -28,6 +32,9 @@ class SMTPProtocolHandler(clientSession: ActorRef) extends Actor {
 
 		case SMTPClientQuit =>
 			sender() ! SMTPServerQuit
+
+		case ClientDisconnected =>
+			logger.warning("Client disconnected unexpectedly")
 
 		case unknownMessage =>
 			logger.warning(s"Received unknown event: $unknownMessage")
@@ -51,6 +58,11 @@ class SMTPProtocolHandler(clientSession: ActorRef) extends Actor {
 
 		case SMTPClientQuit =>
 			sender() ! SMTPServerQuit
+
+		case ClientDisconnected =>
+			logger.warning("Client disconnected unexpectedly")
+			sender() ! ClientDisconnected
+			unbecome()
 
 		case unknownMessage =>
 			logger.warning(s"Received unknown event: $unknownMessage")
@@ -76,7 +88,7 @@ class SMTPProtocolHandler(clientSession: ActorRef) extends Actor {
 		SMTPServerDataOk
 	}
 
-	private def processDataSent(msg: String): SMTPServerEvent = {
+	private def processDataSent(msg: Array[Byte]): SMTPServerEvent = {
 		logger.info(s"Received SMTP message, size: ${msg.length} bytes")
 		SMTPServerOk
 	}
