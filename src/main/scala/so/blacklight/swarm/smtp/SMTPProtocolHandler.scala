@@ -23,6 +23,9 @@ class SMTPProtocolHandler(clientSession: ActorRef) extends Actor {
 		case greeting @ SMTPServerGreeting(_) =>
 			clientSession ! greeting
 			become(expectEhlo)
+		case ClientDisconnected =>
+			logger.warning("Client disconnected unexpectedly")
+			sender() ! ClientDisconnected
 	}
 
 	def expectEhlo: PartialFunction[Any, Unit] = {
@@ -35,6 +38,8 @@ class SMTPProtocolHandler(clientSession: ActorRef) extends Actor {
 
 		case ClientDisconnected =>
 			logger.warning("Client disconnected unexpectedly")
+			sender() ! ClientDisconnected
+			unbecome()
 
 		case unknownMessage =>
 			logger.warning(s"Received unknown event: $unknownMessage")
