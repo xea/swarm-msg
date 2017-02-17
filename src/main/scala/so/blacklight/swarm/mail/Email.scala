@@ -1,7 +1,7 @@
 package so.blacklight.swarm.mail
 
 /**
-	*
+	* Represents an arbitrary valid e-mail address
 	*/
 class Address private (address: String) {
 
@@ -11,7 +11,7 @@ class Address private (address: String) {
 object Address {
 
 	def apply(address: String): Either[Address, String] = {
-		// TODO email address validation comes here
+		// TODO implement e-mail address validation
 		if (address == null || address.trim.length == 0) {
 			Right("Null or empty address")
 		} else {

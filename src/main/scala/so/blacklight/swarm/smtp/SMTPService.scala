@@ -50,7 +50,7 @@ class SMTPService extends Actor {
     (smtpSSLListener ! AcceptConnections)(smtpRouter)
   }
 
-  def handleWorkerTermination(worker: ActorRef) = {
+  def handleWorkerTermination(worker: ActorRef): Unit = {
     /*
     smtpRouter = smtpRouter.removeRoutee(worker)
 
