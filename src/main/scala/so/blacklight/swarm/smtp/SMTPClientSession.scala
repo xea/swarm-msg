@@ -1,9 +1,10 @@
 package so.blacklight.swarm.smtp
 
-import java.io.{BufferedReader, BufferedWriter, InputStreamReader, OutputStreamWriter}
+import java.io._
 import java.net.Socket
 
 import akka.actor.{Actor, Props}
+import akka.event.Logging
 
 import scala.util.matching.Regex
 
@@ -16,6 +17,7 @@ class SMTPClientSession(clientSocket: Socket) extends Actor {
 
 	val reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream))
 	val writer = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream))
+	val logger = Logging(context.system, this)
 
 	def send(msg: Any): Unit = {
 		msg match {
@@ -23,21 +25,32 @@ class SMTPClientSession(clientSocket: Socket) extends Actor {
 			case SMTPServerEhlo(capabilities) =>
 				capabilities.init.foreach(capability => writeln(s"250-$capability"))
 				Option(capabilities.last).foreach(capability => writeln(s"250 $capability"))
-			case SMTPServerDataOk => writeln(SMTPReplyMessages.dataReady)
-			case SMTPServerOk => writeln("250 OK")
-			case SMTPServerQuit => writeln("250 OK")
-			// TODO handle unsupported protocol messages
+			case SMTPServerDataReady => writeln(SMTPReplyMessages.dataReady)
+			case SMTPServerDataOk => writeln(SMTPReplyMessages.dataOk)
+			case SMTPServerOk => writeln(SMTPReplyMessages.ok)
+			case SMTPServerQuit => writeln(SMTPReplyMessages.ok)
+			case SMTPServerSyntaxError => writeln(SMTPReplyMessages.commandNotRecognised)
+			case ClientDisconnected => closeConnection()
+			case other => logger.warning(s"Received unknown message request: $other")
 		}
 	}
 
+	/**
+		* Events handled here will be interpreted as interactions going out to the clients, eg. returning
+		* command replies, expecting user input or closing the connection.
+		*
+		* @return
+		*/
 	override def receive: Receive = {
-		case msg @ SMTPServerDataOk =>
+		case msg @ SMTPServerDataReady =>
 			send(msg)
 			sender() ! readData()
 		case msg @ SMTPServerQuit =>
 			send(msg)
 			closeConnection()
-		// If the message does not have a specific handler, then we'll just send it to the client
+		case ClientDisconnected =>
+			closeConnection()
+		// If the message does not have a specific handler, then we'll just try and send it to the client
 		// and expect a one-line reply
 		case msg =>
 			send(msg)
@@ -69,20 +82,54 @@ class SMTPClientSession(clientSocket: Socket) extends Actor {
 		*
 		* @return client's message body
 		*/
-	def readData(): SMTPClientDataEnd = {
-		// TODO return an Either object representing a possible error
-		val msg = Stream.continually(() => reader.readLine())
-			.map(_())
-			.takeWhile(!_.equals("."))
-		  .mkString
+	def readData(): SMTPClientEvent = {
 
-		SMTPClientDataEnd(msg)
+		try {
+			// Explanation: create an infinite stream of functions of unevaluated read lines first
+			val result = Stream.continually(() => reader.readLine())
+				// Call the functions and thus read a line on-demand
+				.map(_())
+				// Wrap the result in an Option
+				.map(Option(_))
+				// When a None is read then we hit EOF, stop processing
+			  .takeWhile(_.isDefined)
+				// In order to make the tailing dot part of the message, we look for Nones we put an
+				// extra None after it
+				.flatMap(_ match {
+					case Some(".") => List(Some("."), None)
+					case other => List(other)
+				})
+				// At this point the there should be a None immediately after the trailing dot
+			  .takeWhile(_.isDefined)
+				.foldLeft((true, new ByteArrayOutputStream()))((acc, x) => acc match {
+					case (true, buffer) => x match {
+						case Some(".") => (false, buffer)
+						case Some(line) =>
+							buffer.write(line.getBytes())
+							(true, buffer)
+						// The below should never happen as None values are filtered out in the above takeWhile
+						case _ => (true, buffer)
+					}
+					case other => other
+				})
+
+			result match {
+				// If the transmission ended without a trailing dot, then we consider this a disconnect
+				case (true, _) => ClientDisconnected
+				case (false, buffer) => SMTPClientDataEnd(buffer.toByteArray)
+			}
+		} catch {
+			// On any read IO error, we disconnect
+			case _: IOException => ClientDisconnected
+		}
 	}
 
 	/**
-		* Assume that the SMTP transmission has been finished and close the connection
+		* Assume that the SMTP transmission has been finished (either abruptly or normally)
+		* and close the connection.
 		*/
 	def closeConnection(): Unit = {
+		logger.info(s"Closing connection $clientSocket")
 		writer.close()
 		reader.close()
 		clientSocket.close()
@@ -134,14 +181,20 @@ object SMTPPattern {
 }
 
 object SMTPReplyMessages {
+	// Some generic responses
+	def commandNotRecognised: String = "500 Syntax error, command not recognised"
+	def invalidArgument: String = "501 Syntax error in parameters or arguments"
+	def notImplemented: String = "550 Not implemented"
+	def paramNotImplemented: String = "504 Parameter not implemented"
+
+	def ok: String = "250 OK"
+
 	// Connection initial reply codes
 	def connectOk(domain: String): String = s"220 $domain service ready"
 	def connectNotAvailable(domain: String): String = s"421 $domain service not available, closing channel"
 
 	// EHLO/HELO reply codes
 	def ehloOk(domain: String): String = s"250 Welcome $domain"
-	def ehloSyntax: String = "500 Syntax error"
-	def ehloSyntaxParams: String = "501 Syntax error in parameters"
 
 	// DATA reply codes
 	def dataReady: String = "354 Start mail input, end with <CRLF>.<CRLF>"

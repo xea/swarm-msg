@@ -41,13 +41,26 @@ case class SMTPServerEhlo(capabilities: Array[String]) extends SMTPServerEvent
 
 // eg. MAIL FROM: <user@company.com>
 case class SMTPClientMailFrom(sender: String) extends SMTPClientEvent
+// eg. RCPT TO: <user@company.com>
 case class SMTPClientReceiptTo(recipient: String) extends SMTPClientEvent
+// eg. DATA
 case object SMTPClientDataBegin extends SMTPClientEvent
-case class SMTPClientDataEnd(data: String) extends SMTPClientEvent
+// represents a trailing dot (.) character at the end of a message body
+case class SMTPClientDataEnd(msg: Array[Byte]) extends SMTPClientEvent
+// RSET
 case object SMTPClientReset extends SMTPClientEvent
+// QUIT
 case object SMTPClientQuit extends SMTPClientEvent
+// represents any command that is not defined in the SMTP protocol
 case object SMTPClientUnknownCommand extends SMTPClientEvent
+// an error that happens on the client's side (eg. time out, exceptions, etc)
+case class SMTPClientError(error: ClientError) extends SMTPClientEvent
 
 case object SMTPServerOk extends SMTPServerEvent
+case object SMTPServerDataReady extends SMTPServerEvent
 case object SMTPServerDataOk extends SMTPServerEvent
 case object SMTPServerQuit extends SMTPServerEvent
+case object SMTPServerSyntaxError extends SMTPServerEvent
+
+class ClientError extends SMTPClientEvent
+case object ClientDisconnected extends ClientError
