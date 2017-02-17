@@ -25,11 +25,13 @@ class SMTPClientSession(clientSocket: Socket) extends Actor {
 			case SMTPServerEhlo(capabilities) =>
 				capabilities.init.foreach(capability => writeln(s"250-$capability"))
 				Option(capabilities.last).foreach(capability => writeln(s"250 $capability"))
-			case SMTPServerDataOk => writeln(SMTPReplyMessages.dataReady)
-			case SMTPServerOk => writeln("250 OK")
-			case SMTPServerQuit => writeln("250 OK")
+			case SMTPServerDataReady => writeln(SMTPReplyMessages.dataReady)
+			case SMTPServerDataOk => writeln(SMTPReplyMessages.dataOk)
+			case SMTPServerOk => writeln(SMTPReplyMessages.ok)
+			case SMTPServerQuit => writeln(SMTPReplyMessages.ok)
+			case SMTPServerSyntaxError => writeln(SMTPReplyMessages.commandNotRecognised)
 			case ClientDisconnected => closeConnection()
-			// TODO handle unsupported protocol messages
+			case other => logger.warning(s"Received unknown message request: $other")
 		}
 	}
 
@@ -40,7 +42,7 @@ class SMTPClientSession(clientSocket: Socket) extends Actor {
 		* @return
 		*/
 	override def receive: Receive = {
-		case msg @ SMTPServerDataOk =>
+		case msg @ SMTPServerDataReady =>
 			send(msg)
 			sender() ! readData()
 		case msg @ SMTPServerQuit =>
@@ -105,6 +107,8 @@ class SMTPClientSession(clientSocket: Socket) extends Actor {
 						case Some(line) =>
 							buffer.write(line.getBytes())
 							(true, buffer)
+						// The below should never happen as None values are filtered out in the above takeWhile
+						case _ => (true, buffer)
 					}
 					case other => other
 				})
@@ -177,14 +181,20 @@ object SMTPPattern {
 }
 
 object SMTPReplyMessages {
+	// Some generic responses
+	def commandNotRecognised: String = "500 Syntax error, command not recognised"
+	def invalidArgument: String = "501 Syntax error in parameters or arguments"
+	def notImplemented: String = "550 Not implemented"
+	def paramNotImplemented: String = "504 Parameter not implemented"
+
+	def ok: String = "250 OK"
+
 	// Connection initial reply codes
 	def connectOk(domain: String): String = s"220 $domain service ready"
 	def connectNotAvailable(domain: String): String = s"421 $domain service not available, closing channel"
 
 	// EHLO/HELO reply codes
 	def ehloOk(domain: String): String = s"250 Welcome $domain"
-	def ehloSyntax: String = "500 Syntax error"
-	def ehloSyntaxParams: String = "501 Syntax error in parameters"
 
 	// DATA reply codes
 	def dataReady: String = "354 Start mail input, end with <CRLF>.<CRLF>"

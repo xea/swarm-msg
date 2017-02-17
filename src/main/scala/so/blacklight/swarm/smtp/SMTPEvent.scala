@@ -50,8 +50,10 @@ case object SMTPClientUnknownCommand extends SMTPClientEvent
 case class SMTPClientError(error: ClientError) extends SMTPClientEvent
 
 case object SMTPServerOk extends SMTPServerEvent
+case object SMTPServerDataReady extends SMTPServerEvent
 case object SMTPServerDataOk extends SMTPServerEvent
 case object SMTPServerQuit extends SMTPServerEvent
+case object SMTPServerSyntaxError extends SMTPServerEvent
 
 class ClientError extends SMTPClientEvent
 case object ClientDisconnected extends ClientError

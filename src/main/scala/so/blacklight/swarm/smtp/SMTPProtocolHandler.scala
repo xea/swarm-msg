@@ -71,6 +71,7 @@ class SMTPProtocolHandler(clientSession: ActorRef) extends Actor {
 
 		case unknownMessage =>
 			logger.warning(s"Received unknown event: $unknownMessage")
+			sender() ! SMTPServerSyntaxError
 	}
 
 	private def processEhlo(hostname: String): SMTPServerEvent = {
@@ -90,12 +91,12 @@ class SMTPProtocolHandler(clientSession: ActorRef) extends Actor {
 
 	private def processDataRequest: SMTPServerEvent = {
 		logger.info("Received DATA request")
-		SMTPServerDataOk
+		SMTPServerDataReady
 	}
 
 	private def processDataSent(msg: Array[Byte]): SMTPServerEvent = {
 		logger.info(s"Received SMTP message, size: ${msg.length} bytes")
-		SMTPServerOk
+		SMTPServerDataOk
 	}
 }
 
