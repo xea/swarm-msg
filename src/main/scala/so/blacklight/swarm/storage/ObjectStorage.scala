@@ -19,7 +19,7 @@ import scala.collection.mutable
 class ObjectStorage extends Actor {
 
 	// Objects are kept in a memory backed mutable hash map.
-	private val memoryStorage = new mutable.HashMap[String, Any]()
+	private val memoryStorage = new mutable.HashMap[StorageId, Any]()
 
 	private val logger = Logging(context.system, this)
 
@@ -28,6 +28,7 @@ class ObjectStorage extends Actor {
 		case StopService => stopService()
 		case StoreRequest(target) => sender() ! store(target)
 		case RetrieveRequest(request) => sender() ! retrieve(request)
+		case ListEntities(_) => sender() ! listEntities()
 		case unknownMessage => logger.warning(s"Received unknown message: $unknownMessage")
 	}
 
@@ -44,13 +45,16 @@ class ObjectStorage extends Actor {
 	}
 
 	private def store(target: Any): StorageEvent = {
-		val newKey = UUID.randomUUID.toString
+		val newKey = new StorageId(UUID.randomUUID.toString)
 		memoryStorage.put(newKey, target)
-		StorageOK(new StorageId(newKey))
+		StorageOK(newKey)
 	}
 
 	private def retrieve(target: StorageId): Any = {
-		LookupResponse(Option(memoryStorage.get(target.storageId())))
+		LookupResponse(Option(memoryStorage.get(target)))
 	}
 
+	private def listEntities(): EntityList = {
+		EntityList(memoryStorage.map(pair => (pair._1, pair._2.getClass)).toList)
+	}
 }
