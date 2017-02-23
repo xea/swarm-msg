@@ -5,6 +5,7 @@ import java.net.Socket
 
 import akka.actor.{Actor, Props}
 import akka.event.Logging
+import so.blacklight.swarm.mail.Address
 
 import scala.util.matching.Regex
 
@@ -20,6 +21,27 @@ class SMTPClientSession(clientSocket: Socket) extends Actor {
 	val logger = Logging(context.system, this)
 
 	def send(msg: Any): Unit = {
+		if (msg.isInstanceOf[SMTPClientEvent]) {
+			sendClientEvent(msg.asInstanceOf[SMTPClientEvent])
+		} else if (msg.isInstanceOf[SMTPServerEvent]) {
+			sendServerEvent(msg.asInstanceOf[SMTPServerEvent])
+		}
+	}
+
+	def sendClientEvent(msg: SMTPClientEvent): Unit = {
+		msg match {
+			case SMTPClientEhlo(hostId) => writeln(SMTPCommand.ehlo(hostId))
+			case SMTPClientMailFrom(sender) => writeln(SMTPCommand.mailFrom(sender))
+			case SMTPClientReceiptTo(recipient) => writeln(SMTPCommand.receiptTo(recipient))
+			case SMTPClientDataBegin => writeln(SMTPCommand.data)
+			case SMTPClientDataEnd(msg) =>
+				writeln(msg)
+				writeln(".")
+			case ClientDisconnected => closeConnection()
+		}
+	}
+
+	def sendServerEvent(msg: SMTPServerEvent): Unit = {
 		msg match {
 			case SMTPServerGreeting(greeting) => writeln(SMTPReplyMessages.connectOk(greeting))
 			case SMTPServerEhlo(capabilities) =>
@@ -30,7 +52,6 @@ class SMTPClientSession(clientSocket: Socket) extends Actor {
 			case SMTPServerOk => writeln(SMTPReplyMessages.ok)
 			case SMTPServerQuit => writeln(SMTPReplyMessages.ok)
 			case SMTPServerSyntaxError => writeln(SMTPReplyMessages.commandNotRecognised)
-			case ClientDisconnected => closeConnection()
 			case other => logger.warning(s"Received unknown message request: $other")
 		}
 	}
@@ -136,6 +157,16 @@ class SMTPClientSession(clientSocket: Socket) extends Actor {
 	}
 
 	/**
+		* Write a message to the client's output stream and append a new line 'r\n' at the end
+		*
+		* @param msg message to be sent as a character array
+		* @param flush output buffer flush required?
+		*/
+	protected def writeln(msg: Array[Byte], flush: Boolean = true): Unit = {
+		write(msg ++ Array('\r', '\n'), flush)
+	}
+
+	/**
 		* Write a message to the client's output stream and append a new line '\r\n' at the end.
 		*
 		* @param msg message to be sent
@@ -143,6 +174,9 @@ class SMTPClientSession(clientSocket: Socket) extends Actor {
 		*/
 	protected def writeln(msg: String, flush: Boolean = true): Unit = {
 		write(msg.toCharArray ++ Array('\r', '\n'), flush)
+	}
+
+	protected def write(msg: Array[Byte], flush: Boolean = true): Unit = {
 	}
 
 	/**
@@ -178,6 +212,14 @@ object SMTPPattern {
 	val data: Regex = "^(?i)DATA$".r
 	val quit: Regex = "^(?i)QUIT$".r
 	val reset: Regex = "^(?i)RSET$".r
+}
+
+object SMTPCommand {
+	def ehlo(hostId: String): String = s"EHLO $hostId"
+	def mailFrom(sender: String): String = s"MAIL FROM: sender"
+	def receiptTo(recipient: String): String = s"RCPT TO: recipient"
+	def data: String = "DATA"
+	def customCommand(cmd: String): String = cmd
 }
 
 object SMTPReplyMessages {

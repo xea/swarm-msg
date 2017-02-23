@@ -12,4 +12,11 @@ let run = function() {
         .enter().append("p")
         .text(function(d) { return "I’m number " + d + "!"; });
 
+    d3.select(".chart")
+        .data(data)
+        .enter()
+        .append("div")
+        .style("width", function(d) { return d * 10 + "px"; })
+        .text(function(d) { return d; });
 }
+
