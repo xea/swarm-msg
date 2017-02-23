@@ -8,8 +8,11 @@ import akka.event.Logging
 import akka.pattern.ask
 import akka.util.Timeout
 import so.blacklight.swarm.control.{StartService, StopService}
+import so.blacklight.swarm.http.json.JSONTransformer
+import so.blacklight.swarm.mail.Email
 import so.blacklight.swarm.stats.{BatchCounterValue, CounterValue, GetCounterValue}
-import spark.Spark.{get, stop, staticFiles}
+import so.blacklight.swarm.storage.{EntityList, ListEntities, StorageId}
+import spark.Spark.{get, staticFiles, stop}
 import spark.template.jade.JadeTemplateEngine
 import spark.{ModelAndView, Request, Response}
 
@@ -41,12 +44,14 @@ class HttpService extends Actor {
 		staticFiles.location("public")
 
 		val jade = new JadeTemplateEngine()
+		val json = new JSONTransformer()
 
 		// TODO pretty printing is here temporarily. Remove when it's not needed any more
 		jade.configuration().setPrettyPrint(true)
 
 		get("/", (req, resp) => showIndex(req, resp), jade)
 		get("/stats", (req, resp) => showStatistics(req, resp), jade)
+		get("/emails", "application/json", (req, resp) => listMessages(req, resp), json)
 	}
 
 	private def showIndex(request: Request, response: Response): ModelAndView = {
@@ -72,6 +77,22 @@ class HttpService extends Actor {
 					.render()
 			case _ => Template("stats-error").render()
 		}
+	}
+
+	private def listMessages(request: Request, response: Response): List[(StorageId, Class[_])] = {
+		response.header("Content-Type", "application/json")
+		listMessages(0, Int.MaxValue)
+	}
+
+	private def listMessages(startIdx: Int, limit: Int): List[(StorageId, Class[_])] = {
+		implicit val timeout = Timeout(5, TimeUnit.SECONDS)
+		val future = context.actorSelection("/user/objectStorageService") ? ListEntities(None)
+
+		Await.result(future, timeout.duration) match {
+			case EntityList(entities) => entities
+			case _ => List()
+		}
+//		List().drop(startIdx).take(limit)
 	}
 }
 
