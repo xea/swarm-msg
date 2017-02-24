@@ -5,7 +5,6 @@ import java.net.Socket
 
 import akka.actor.{Actor, Props}
 import akka.event.Logging
-import so.blacklight.swarm.mail.Address
 
 import scala.util.matching.Regex
 
@@ -20,11 +19,15 @@ class SMTPClientSession(clientSocket: Socket) extends Actor {
 	val writer = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream))
 	val logger = Logging(context.system, this)
 
-	def send(msg: Any): Unit = {
-		if (msg.isInstanceOf[SMTPClientEvent]) {
-			sendClientEvent(msg.asInstanceOf[SMTPClientEvent])
-		} else if (msg.isInstanceOf[SMTPServerEvent]) {
-			sendServerEvent(msg.asInstanceOf[SMTPServerEvent])
+	private val trailingDot: String = "\r\n.\r\n"
+
+	def send(msg: SMTPEvent): Unit = {
+		msg match {
+			case clientMsg: SMTPClientEvent =>
+				sendClientEvent(clientMsg)
+			case serverMsg: SMTPServerEvent =>
+				sendServerEvent(serverMsg)
+			case _ => ()
 		}
 	}
 
@@ -34,9 +37,10 @@ class SMTPClientSession(clientSocket: Socket) extends Actor {
 			case SMTPClientMailFrom(sender) => writeln(SMTPCommand.mailFrom(sender))
 			case SMTPClientReceiptTo(recipient) => writeln(SMTPCommand.receiptTo(recipient))
 			case SMTPClientDataBegin => writeln(SMTPCommand.data)
-			case SMTPClientDataEnd(msg) =>
-				writeln(msg)
-				writeln(".")
+			case SMTPClientDataEnd(messageBody) =>
+				write(messageBody)
+				writeln(trailingDot)
+			case SMTPClientQuit => writeln(SMTPCommand.quit)
 			case ClientDisconnected => closeConnection()
 		}
 	}
@@ -73,9 +77,11 @@ class SMTPClientSession(clientSocket: Socket) extends Actor {
 			closeConnection()
 		// If the message does not have a specific handler, then we'll just try and send it to the client
 		// and expect a one-line reply
-		case msg =>
+		case msg: SMTPEvent =>
 			send(msg)
 			sender() ! readReply()
+		case otherMsg =>
+			logger.warning(s"Unknown message found: $otherMsg")
 	}
 
 	/**
@@ -137,7 +143,7 @@ class SMTPClientSession(clientSocket: Socket) extends Actor {
 			result match {
 				// If the transmission ended without a trailing dot, then we consider this a disconnect
 				case (true, _) => ClientDisconnected
-				case (false, buffer) => SMTPClientDataEnd(buffer.toByteArray)
+				case (false, buffer) => SMTPClientDataEnd(new String(buffer.toByteArray).toCharArray)
 			}
 		} catch {
 			// On any read IO error, we disconnect
@@ -162,21 +168,18 @@ class SMTPClientSession(clientSocket: Socket) extends Actor {
 		* @param msg message to be sent as a character array
 		* @param flush output buffer flush required?
 		*/
-	protected def writeln(msg: Array[Byte], flush: Boolean = true): Unit = {
+	protected def writeln(msg: Array[Char], flush: Boolean): Unit = {
 		write(msg ++ Array('\r', '\n'), flush)
 	}
 
 	/**
 		* Write a message to the client's output stream and append a new line '\r\n' at the end.
 		*
-		* @param msg message to be sent
+		* @param msg message to send
 		* @param flush output buffer flush required?
 		*/
 	protected def writeln(msg: String, flush: Boolean = true): Unit = {
 		write(msg.toCharArray ++ Array('\r', '\n'), flush)
-	}
-
-	protected def write(msg: Array[Byte], flush: Boolean = true): Unit = {
 	}
 
 	/**
@@ -220,6 +223,8 @@ object SMTPCommand {
 	def receiptTo(recipient: String): String = s"RCPT TO: recipient"
 	def data: String = "DATA"
 	def customCommand(cmd: String): String = cmd
+	def quit: String = "QUIT"
+
 }
 
 object SMTPReplyMessages {

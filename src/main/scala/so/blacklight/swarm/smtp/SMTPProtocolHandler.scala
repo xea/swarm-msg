@@ -94,7 +94,7 @@ class SMTPProtocolHandler(clientSession: ActorRef) extends Actor {
 		SMTPServerDataReady
 	}
 
-	private def processDataSent(msg: Array[Byte]): SMTPServerEvent = {
+	private def processDataSent(msg: Array[Char]): SMTPServerEvent = {
 		logger.info(s"Received SMTP message, size: ${msg.length} bytes")
 		SMTPServerDataOk
 	}
