@@ -4,6 +4,7 @@ import java.net.Socket
 
 import akka.actor.Actor
 import akka.event.Logging
+import so.blacklight.swarm.mail.Email
 
 import scala.util.Random
 
@@ -16,6 +17,7 @@ class SMTPConnector extends Actor {
   override def receive: Receive = {
     case ClientConnected(clientSocket) => processConnection(clientSocket)
 		case ClientQuit => processQuit()
+		case ReceivedMessage(email) => processEmail(email)
     case _ => println("Received message")
   }
 
@@ -32,11 +34,14 @@ class SMTPConnector extends Actor {
 		val protocolHandlerId = "smtpProtocolHandler-%s%s".format(remoteAddress.replaceAll("/", ""), sessionSuffix)
 
 		val clientSession = context.actorOf(SMTPClientSession.props(clientSocket), clientSessionId)
-    val protocolHandler = context.actorOf(SMTPProtocolHandler.props(clientSession), protocolHandlerId)
+    val protocolHandler = context.actorOf(SMTPProtocolHandler.props(clientSession, self), protocolHandlerId)
 
     protocolHandler ! SMTPServerGreeting("Swarm SMTP")
   }
 
+	def processEmail(email: Email): Unit = {
+
+	}
 
 	def processQuit(): Unit = {
 		println("Precious client has quit")

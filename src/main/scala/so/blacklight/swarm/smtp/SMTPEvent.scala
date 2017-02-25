@@ -1,5 +1,7 @@
 package so.blacklight.swarm.smtp
 
+import so.blacklight.swarm.mail.Email
+
 trait SMTPEvent
 
 /**
@@ -63,6 +65,8 @@ case object SMTPServerDataReady extends SMTPServerEvent
 case object SMTPServerDataOk extends SMTPServerEvent
 case object SMTPServerQuit extends SMTPServerEvent
 case object SMTPServerSyntaxError extends SMTPServerEvent
+
+case class ReceivedMessage(email: Email) extends SMTPServerEvent
 
 class ClientError extends SMTPClientEvent
 case object ClientDisconnected extends ClientError

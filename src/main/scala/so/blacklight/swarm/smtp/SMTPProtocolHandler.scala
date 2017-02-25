@@ -2,6 +2,7 @@ package so.blacklight.swarm.smtp
 
 import akka.actor.{Actor, ActorRef, Props}
 import akka.event.Logging
+import so.blacklight.swarm.mail.{Address, Email, Envelope}
 
 /**
 	* Impelments the SMTP protocol by supervising the lower level client session and deciding
@@ -9,7 +10,7 @@ import akka.event.Logging
 	*
 	* @param clientSession client session
 	*/
-class SMTPProtocolHandler(clientSession: ActorRef) extends Actor {
+class SMTPProtocolHandler(clientSession: ActorRef, connector: ActorRef) extends Actor {
 
 	import context._
 
@@ -56,8 +57,15 @@ class SMTPProtocolHandler(clientSession: ActorRef) extends Actor {
 			sender() ! processDataRequest
 
 		case SMTPClientDataEnd(msg) =>
-			sender() ! processDataSent(msg)
-
+			Email(Envelope(), msg) match {
+				case Left(error) =>
+					logger.error(s"$error")
+					// TODO instead of processDataSent there should be an error notification
+					sender() ! processDataSent(msg)
+				case Right(email) =>
+					connector ! ReceivedMessage(email)
+					sender() ! processDataSent(msg)
+			}
 		case SMTPClientReset =>
 			unbecome()
 
@@ -102,6 +110,6 @@ class SMTPProtocolHandler(clientSession: ActorRef) extends Actor {
 
 object SMTPProtocolHandler {
 
-  def props(clientSession: ActorRef): Props = Props(new SMTPProtocolHandler(clientSession))
+  def props(clientSession: ActorRef, connector: ActorRef): Props = Props(new SMTPProtocolHandler(clientSession, connector))
 
 }

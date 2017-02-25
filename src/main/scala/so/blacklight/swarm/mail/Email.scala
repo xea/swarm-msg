@@ -1,25 +1,11 @@
 package so.blacklight.swarm.mail
 
-/**
-	* Represents an arbitrary valid e-mail address
-	*/
-class Address private (address: String) {
+class Email private (from: Address, to: Seq[Address], subject: String) {
 
-	def isPostmaster(): Boolean = "<>".equals(address)
 }
 
-object Address {
-
-	def apply(address: String): Either[Address, String] = {
-		// TODO implement e-mail address validation
-		if (address == null || address.trim.length == 0) {
-			Right("Null or empty address")
-		} else {
-			Left(new Address(address.trim))
-		}
+object Email {
+	def apply(envelope: Envelope, body: Array[Char]): Either[String, Email] = {
+		Left("Error")
 	}
-}
-
-class Email(from: Address, to: Seq[Address], subject: String) {
-
 }

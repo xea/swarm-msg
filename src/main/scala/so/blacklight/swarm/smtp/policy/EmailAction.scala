@@ -13,3 +13,8 @@ class ModifySender extends EmailAction {
 	override def processEmail(email: Email): Unit = {
 	}
 }
+
+class SMTPDelivery extends EmailAction {
+	override def processEmail(email: Email): Unit = {
+	}
+}
