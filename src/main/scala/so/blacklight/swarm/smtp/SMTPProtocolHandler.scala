@@ -16,6 +16,8 @@ class SMTPProtocolHandler(clientSession: ActorRef, connector: ActorRef) extends 
 
 	val logger = Logging(context.system, this)
 
+	var tempEnvelope = new PartialEnvelope
+
 	/**
 		* This is the initial stage of mail processing, switches to "expect EHLO" mode immediately
 		* after issuing the server greeting
@@ -57,14 +59,20 @@ class SMTPProtocolHandler(clientSession: ActorRef, connector: ActorRef) extends 
 			sender() ! processDataRequest
 
 		case SMTPClientDataEnd(msg) =>
-			Email(Envelope(), msg) match {
+			tempEnvelope.toEnvelope() match {
+				case Right(envelope) =>
+					Email(envelope, msg) match {
+						case Left(error) =>
+							logger.error(s"$error")
+							// TODO instead of processDataSent there should be an error notification
+							sender() ! processDataSent(msg)
+						case Right(email) =>
+							connector ! ReceivedMessage(email)
+							sender() ! processDataSent(msg)
+					}
 				case Left(error) =>
 					logger.error(s"$error")
-					// TODO instead of processDataSent there should be an error notification
-					sender() ! processDataSent(msg)
-				case Right(email) =>
-					connector ! ReceivedMessage(email)
-					sender() ! processDataSent(msg)
+					// TODO finish error handling
 			}
 		case SMTPClientReset =>
 			unbecome()
@@ -88,12 +96,28 @@ class SMTPProtocolHandler(clientSession: ActorRef, connector: ActorRef) extends 
 	}
 
 	private def processMailFrom(sender: String): SMTPServerEvent = {
-		logger.info(s"Sender: $sender")
+		Address(sender) match {
+			case Left(error) => logger.warning(s"Invalid sender address: $error")
+			case Right(address) =>
+				tempEnvelope.sender match {
+					case Some(_) => logger.error("A sender address has already been defined")
+					case None =>
+						tempEnvelope.setSender(address)
+						logger.info(s"Sender: $address")
+				}
+		}
+
 		SMTPServerOk
 	}
 
 	private def processReceiptTo(recipient: String): SMTPServerEvent = {
-		logger.info(s"Recipient: $recipient")
+		Address(recipient) match {
+			case Left(error) => logger.warning(s"Invalid recipient address: $error")
+			case Right(address) =>
+				tempEnvelope.addRecipient(address)
+				logger.info(s"Recipient: $address")
+		}
+
 		SMTPServerOk
 	}
 
@@ -112,4 +136,30 @@ object SMTPProtocolHandler {
 
   def props(clientSession: ActorRef, connector: ActorRef): Props = Props(new SMTPProtocolHandler(clientSession, connector))
 
+}
+
+class PartialEnvelope {
+	var sender: Option[Address] = None
+
+	var recipients: List[Address] = List()
+
+	def setSender(sender: Address): PartialEnvelope = {
+		this.sender = Option(sender)
+		this
+	}
+
+	def addRecipient(recipient: Address): PartialEnvelope = {
+		recipients ++= List(recipient)
+		this
+	}
+
+	def toEnvelope(): Either[String, Envelope] = {
+		sender.map(address => Right(Envelope(address, recipients))).getOrElse(Left("Invalid envelope: sender missing"))
+	}
+
+	def hasSender(): Boolean = sender.isDefined
+
+	def hasRecipient(): Boolean = !recipients.isEmpty
+
+	def isComplete(): Boolean = hasSender() && hasRecipient()
 }

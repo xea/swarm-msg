@@ -2,6 +2,9 @@ package so.blacklight.swarm.smtp
 
 import so.blacklight.swarm.mail.Email
 
+/**
+	* Marker trait for events generated during an SMTP transmission either on the client's or on server's side
+	*/
 trait SMTPEvent
 
 /**
@@ -66,6 +69,11 @@ case object SMTPServerDataOk extends SMTPServerEvent
 case object SMTPServerQuit extends SMTPServerEvent
 case object SMTPServerSyntaxError extends SMTPServerEvent
 
+/**
+	* Represents the event of successfully receiving a complete e-mail from the client
+	*
+	* @param email the complete e-mail
+	*/
 case class ReceivedMessage(email: Email) extends SMTPServerEvent
 
 class ClientError extends SMTPClientEvent
