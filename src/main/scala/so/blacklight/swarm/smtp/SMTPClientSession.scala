@@ -211,6 +211,7 @@ object SMTPClientSession {
 	* Defines a collection of regular expressions that match typical SMTP protocol commands
 	*/
 object SMTPPattern {
+	// Client commands
 	val helo: Regex = "^(?i)HELO\\s+(.*)\\s*$".r
 	val ehlo: Regex = "^(?i)EHLO\\s+(.*)\\s*$".r
 	val mailFrom: Regex = "^(?i)MAIL FROM:\\s*(.*)\\s*$".r
@@ -219,6 +220,11 @@ object SMTPPattern {
 	val quit: Regex = "^(?i)QUIT$".r
 	val noop: Regex = "^(?i)NOOP$".r
 	val reset: Regex = "^(?i)RSET$".r
+
+	// Server responses
+	val success: Regex = "^200".r
+	val systemStatus: Regex = "^201".r
+	val ok: Regex = "^250".r
 }
 
 object SMTPCommand {
