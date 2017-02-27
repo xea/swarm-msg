@@ -196,7 +196,7 @@ class PartialEnvelope {
 
 	def hasSender(): Boolean = sender.isDefined
 
-	def hasRecipient(): Boolean = !recipients.isEmpty
+	def hasRecipient(): Boolean = recipients.nonEmpty
 
 	def isComplete(): Boolean = hasSender() && hasRecipient()
 }

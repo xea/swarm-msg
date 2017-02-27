@@ -40,7 +40,7 @@ class SMTPConnector extends Actor {
   }
 
 	def processEmail(email: Email): Unit = {
-
+		logger.info("Transaction finished, processing message")
 	}
 
 	def processQuit(): Unit = {
