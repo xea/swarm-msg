@@ -1,11 +1,11 @@
 package so.blacklight.swarm.mail
 
-class Email private (from: Address, to: Seq[Address], subject: String) {
+class Email private (envelope: Envelope, subject: String) {
 
 }
 
 object Email {
 	def apply(envelope: Envelope, body: Array[Char]): Either[String, Email] = {
-		Left("Error")
+		Right(new Email(envelope, new String(body)))
 	}
 }

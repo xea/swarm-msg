@@ -39,13 +39,20 @@ class SMTPProtocolHandler(clientSession: ActorRef, connector: ActorRef) extends 
 		case SMTPClientQuit =>
 			sender() ! SMTPServerQuit
 
+		case SMTPClientNoOperation =>
+			sender() ! SMTPServerOk
+
 		case ClientDisconnected =>
 			logger.warning("Client disconnected unexpectedly")
 			sender() ! ClientDisconnected
 			unbecome()
 
+		case _: SMTPClientCommand =>
+			sender() ! SMTPServerBadSequence
+
 		case unknownMessage =>
 			logger.warning(s"Received unknown event: $unknownMessage")
+			sender() ! SMTPServerSyntaxError
 	}
 
 	def expectEmail: PartialFunction[Any, Unit] = {
@@ -59,22 +66,10 @@ class SMTPProtocolHandler(clientSession: ActorRef, connector: ActorRef) extends 
 			sender() ! processDataRequest
 
 		case SMTPClientDataEnd(msg) =>
-			tempEnvelope.toEnvelope() match {
-				case Right(envelope) =>
-					Email(envelope, msg) match {
-						case Left(error) =>
-							logger.error(s"$error")
-							// TODO instead of processDataSent there should be an error notification
-							sender() ! processDataSent(msg)
-						case Right(email) =>
-							connector ! ReceivedMessage(email)
-							sender() ! processDataSent(msg)
-					}
-				case Left(error) =>
-					logger.error(s"$error")
-					// TODO finish error handling
-			}
+			sender() ! processDataSent(msg)
+
 		case SMTPClientReset =>
+			sender() ! processReset
 			unbecome()
 
 		case SMTPClientQuit =>
@@ -97,38 +92,74 @@ class SMTPProtocolHandler(clientSession: ActorRef, connector: ActorRef) extends 
 
 	private def processMailFrom(sender: String): SMTPServerEvent = {
 		Address(sender) match {
-			case Left(error) => logger.warning(s"Invalid sender address: $error")
+			case Left(error) =>
+				logger.warning(s"Invalid sender address: $error")
+				SMTPServerInvalidParameter
+
 			case Right(address) =>
 				tempEnvelope.sender match {
-					case Some(_) => logger.error("A sender address has already been defined")
+					case Some(_) =>
+						logger.error("A sender address has already been defined")
+						SMTPServerBadSequence
+
 					case None =>
 						tempEnvelope.setSender(address)
 						logger.info(s"Sender: $address")
+						SMTPServerOk
 				}
 		}
-
-		SMTPServerOk
 	}
 
 	private def processReceiptTo(recipient: String): SMTPServerEvent = {
 		Address(recipient) match {
-			case Left(error) => logger.warning(s"Invalid recipient address: $error")
-			case Right(address) =>
-				tempEnvelope.addRecipient(address)
-				logger.info(s"Recipient: $address")
-		}
+			case Left(error) =>
+				logger.warning(s"Invalid recipient address: $error")
+				SMTPServerInvalidParameter
 
-		SMTPServerOk
+			case Right(address) =>
+				tempEnvelope.sender match {
+					case Some(_) =>
+						tempEnvelope.addRecipient(address)
+						logger.info(s"Recipient: $address")
+						SMTPServerOk
+
+					case None =>
+						logger.error("Invalid command sequence")
+						SMTPServerBadSequence
+				}
+		}
 	}
 
 	private def processDataRequest: SMTPServerEvent = {
-		logger.info("Received DATA request")
-		SMTPServerDataReady
+		if (tempEnvelope.isComplete()) {
+			logger.info("Received DATA request")
+			SMTPServerDataReady
+		} else {
+			SMTPServerBadSequence
+		}
 	}
 
 	private def processDataSent(msg: Array[Char]): SMTPServerEvent = {
-		logger.info(s"Received SMTP message, size: ${msg.length} bytes")
-		SMTPServerDataOk
+		tempEnvelope.toEnvelope() match {
+			case Right(envelope) =>
+				Email(envelope, msg) match {
+					case Left(_) =>
+						// TODO find a better error, although this is not expected to happen too often
+						SMTPServerSyntaxError
+					case Right(email) =>
+						connector ! ReceivedMessage(email)
+						SMTPServerOk
+				}
+			case Left(error) =>
+				logger.error(error)
+				SMTPServerBadSequence
+		}
+	}
+
+	private def processReset: SMTPServerEvent = {
+		tempEnvelope.reset
+
+		SMTPServerOk
 	}
 }
 
@@ -142,6 +173,12 @@ class PartialEnvelope {
 	var sender: Option[Address] = None
 
 	var recipients: List[Address] = List()
+
+	def reset: PartialEnvelope = {
+		sender = None
+		recipients = List()
+		this
+	}
 
 	def setSender(sender: Address): PartialEnvelope = {
 		this.sender = Option(sender)

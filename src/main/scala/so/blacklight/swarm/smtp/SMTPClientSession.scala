@@ -56,6 +56,8 @@ class SMTPClientSession(clientSocket: Socket) extends Actor {
 			case SMTPServerOk => writeln(SMTPReplyMessages.ok)
 			case SMTPServerQuit => writeln(SMTPReplyMessages.ok)
 			case SMTPServerSyntaxError => writeln(SMTPReplyMessages.commandNotRecognised)
+			case SMTPServerInvalidParameter => writeln(SMTPReplyMessages.invalidArgument)
+			case SMTPServerBadSequence => writeln(SMTPReplyMessages.badSequence)
 			case other => logger.warning(s"Received unknown message request: $other")
 		}
 	}
@@ -97,6 +99,7 @@ class SMTPClientSession(clientSocket: Socket) extends Actor {
 			case SMTPPattern.mailFrom(sender) => SMTPClientMailFrom(sender)
 			case SMTPPattern.rcptTo(recipient) => SMTPClientReceiptTo(recipient)
 			case SMTPPattern.data() => SMTPClientDataBegin
+			case SMTPPattern.noop() => SMTPClientNoOperation
 			case SMTPPattern.quit() => SMTPClientQuit
 			case _ => SMTPClientUnknownCommand
 		}
@@ -214,6 +217,7 @@ object SMTPPattern {
 	val rcptTo: Regex = "^(?i)RCPT TO:\\s*(.*)\\s*$".r
 	val data: Regex = "^(?i)DATA$".r
 	val quit: Regex = "^(?i)QUIT$".r
+	val noop: Regex = "^(?i)NOOP$".r
 	val reset: Regex = "^(?i)RSET$".r
 }
 
@@ -228,9 +232,11 @@ object SMTPCommand {
 }
 
 object SMTPReplyMessages {
+
 	// Some generic responses
 	def commandNotRecognised: String = "500 Syntax error, command not recognised"
 	def invalidArgument: String = "501 Syntax error in parameters or arguments"
+	def badSequence: String = "503 Bad sequence of commands"
 	def notImplemented: String = "550 Not implemented"
 	def paramNotImplemented: String = "504 Parameter not implemented"
 

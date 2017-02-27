@@ -23,7 +23,7 @@ object Envelope {
 					  .head)
 				} else {
 					Right(Envelope(address, maybeRecipients
-					  .map(_.getOrElse(Address.empty()))))
+					  .map(_.getOrElse(Address.nullAddress()))))
 				}
 		}
 	}
