@@ -10,7 +10,7 @@ import so.blacklight.swarm.mail.{Address, Email, Envelope}
 	*
 	* @param clientSession client session
 	*/
-class SMTPProtocolHandler(clientSession: ActorRef, connector: ActorRef) extends Actor {
+class SMTPServerProtocol(clientSession: ActorRef, connector: ActorRef) extends Actor {
 
 	import context._
 
@@ -163,9 +163,9 @@ class SMTPProtocolHandler(clientSession: ActorRef, connector: ActorRef) extends 
 	}
 }
 
-object SMTPProtocolHandler {
+object SMTPServerProtocol {
 
-  def props(clientSession: ActorRef, connector: ActorRef): Props = Props(new SMTPProtocolHandler(clientSession, connector))
+  def props(clientSession: ActorRef, connector: ActorRef): Props = Props(new SMTPServerProtocol(clientSession, connector))
 
 }
 

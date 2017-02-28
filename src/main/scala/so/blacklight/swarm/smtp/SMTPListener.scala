@@ -100,4 +100,5 @@ object SMTPListener {
 
 case object AcceptConnections
 case class ClientConnected(remote: Socket)
+case class DeliverMessage(remote: Socket)
 case object ClientQuit

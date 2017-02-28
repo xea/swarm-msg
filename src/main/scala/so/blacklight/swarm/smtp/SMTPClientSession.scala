@@ -6,14 +6,28 @@ import java.net.Socket
 import akka.actor.{Actor, Props}
 import akka.event.Logging
 
+import scala.util.Random
 import scala.util.matching.Regex
+
+class SessionID(id: String) {
+	override def toString: String = id
+}
+
+object SessionID {
+	def apply(): SessionID = SessionID(new Random().nextLong(), System.nanoTime())
+
+	def apply(id: Long): SessionID = SessionID(id, System.nanoTime())
+
+	def apply(part1: Long, part2: Long): SessionID = new SessionID("%d-%d".format(part1, part2))
+
+}
 
 /**
 	* Represents a low-level SMTP client session that can send and receive SMTP protocol messages.
 	*
 	* @param clientSocket client's network socket
 	*/
-class SMTPClientSession(clientSocket: Socket) extends Actor {
+class SMTPClientSession(clientSocket: Socket, sessionId: SessionID) extends Actor {
 
 	val reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream))
 	val writer = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream))
@@ -203,8 +217,8 @@ class SMTPClientSession(clientSocket: Socket) extends Actor {
 }
 
 object SMTPClientSession {
-	def props(clientSocket: Socket): Props = Props(SMTPClientSession(clientSocket))
-	def apply(clientSocket: Socket): SMTPClientSession = new SMTPClientSession(clientSocket)
+	def props(clientSocket: Socket, sessionId: SessionID): Props = Props(SMTPClientSession(clientSocket, sessionId))
+	def apply(clientSocket: Socket, sessionId: SessionID): SMTPClientSession = new SMTPClientSession(clientSocket, sessionId)
 }
 
 /**
