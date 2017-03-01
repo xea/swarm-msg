@@ -18,13 +18,19 @@ class PolicyEngine extends Actor {
 		case inputMessage: Email => determinePolicies(inputMessage)
 			.foldLeft[Either[String, Email]](Right(inputMessage))((result, policy) =>
 				result match {
+
 					case Right(message) =>
 						policy match {
+
+							// Asynchronous policies are expected to be actors
 							case asyncPolicy: AsyncAction =>
 								policyExecutor ! ApplyAction(message, asyncPolicy)
 								Right(message)
+
+							// Regular (synchronous) policies are evaluated in-line
 							case policy: EmailAction => policy.processEmail(message)
 						}
+
 					case error => error
 				})
 		case ActionError(error) => logger.warning(s"An error occurred during action evaluation: $error")
@@ -69,3 +75,4 @@ case class ApplyAction(email: Email, action: EmailAction)
 case class ActionApplied(email: Email)
 // Describes an error happening during the execution of an action
 case class ActionError(error: String)
+

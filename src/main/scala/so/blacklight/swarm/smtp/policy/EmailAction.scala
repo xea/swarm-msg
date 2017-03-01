@@ -15,7 +15,7 @@ trait EmailAction {
 	def processEmail(email: Email): Either[String, Email]
 }
 
-trait AsyncAction extends EmailAction
+trait AsyncAction
 
 class ModifySender extends EmailAction {
 	override def processEmail(email: Email): Either[String, Email] = {
@@ -25,9 +25,10 @@ class ModifySender extends EmailAction {
 
 class SMTPDelivery extends Actor with AsyncAction {
 
-	override def processEmail(email: Email): Either[String, Email] = {
+	def processEmail(email: Email): Either[String, Email] = {
 		try {
 			val socket = new Socket("localhost", 5025)
+
 			Right(email)
 		} catch {
 			case ex: Exception => Left(ex.getMessage)

@@ -5,7 +5,7 @@ import java.net.Socket
 import akka.actor.{Actor, ActorRef}
 import akka.event.Logging
 import so.blacklight.swarm.mail.Email
-import so.blacklight.swarm.smtp.policy.{PolicyEngine, SMTPDelivery}
+import so.blacklight.swarm.smtp.policy.PolicyEngine
 
 import scala.util.Random
 
@@ -45,15 +45,18 @@ class SMTPConnector extends Actor {
 	private def initSession(clientSocket: Socket): ActorRef = {
 		val remoteAddress = clientSocket.getRemoteSocketAddress.toString
 
+		val sessionId = SessionID()
+
 		val nanos = System.nanoTime()
 		val random = Random.nextLong()
 
-		val sessionSuffix = "-%d-%d".format(random, nanos)
-		val clientSessionId = "clientSession-%s%s".format(remoteAddress.replaceAll("/", ""), sessionSuffix)
-		val protocolHandlerId = "smtpProtocolHandler-%s%s".format(remoteAddress.replaceAll("/", ""), sessionSuffix)
+		val suffix = "%s-%s".format(remoteAddress.replaceAll("/", ""), sessionId.toString)
 
-		val clientSession = context.actorOf(SMTPClientSession.props(clientSocket), clientSessionId)
-		val protocolHandler = context.actorOf(SMTPProtocolHandler.props(clientSession, self), protocolHandlerId)
+		val clientSessionId = "clientSession-%s".format(suffix)
+		val protocolHandlerId = "smtpProtocolHandler-%s".format(suffix)
+
+		val clientSession = context.actorOf(SMTPClientSession.props(clientSocket, sessionId), clientSessionId)
+		val protocolHandler = context.actorOf(SMTPServerProtocol.props(clientSession, self), protocolHandlerId)
 
 		protocolHandler
 	}
