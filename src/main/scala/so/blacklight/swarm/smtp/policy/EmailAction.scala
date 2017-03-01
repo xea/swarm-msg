@@ -2,8 +2,9 @@ package so.blacklight.swarm.smtp.policy
 
 import java.net.Socket
 
-import akka.actor.ActorRef
+import akka.actor.Actor
 import so.blacklight.swarm.mail.Email
+import so.blacklight.swarm.smtp.DeliverMessage
 
 // TODO implement effectful actions, similarly to Idris' system
 
@@ -14,9 +15,7 @@ trait EmailAction {
 	def processEmail(email: Email): Either[String, Email]
 }
 
-abstract class AsyncAction(supervisor: ActorRef) extends EmailAction {
-
-}
+trait AsyncAction extends EmailAction
 
 class ModifySender extends EmailAction {
 	override def processEmail(email: Email): Either[String, Email] = {
@@ -24,7 +23,7 @@ class ModifySender extends EmailAction {
 	}
 }
 
-class SMTPDelivery(supervisor: ActorRef) extends AsyncAction(supervisor) {
+class SMTPDelivery extends Actor with AsyncAction {
 
 	override def processEmail(email: Email): Either[String, Email] = {
 		try {
@@ -33,5 +32,10 @@ class SMTPDelivery(supervisor: ActorRef) extends AsyncAction(supervisor) {
 		} catch {
 			case ex: Exception => Left(ex.getMessage)
 		}
+	}
+
+	override def receive: Receive = {
+		case DeliverMessage(msg) => ()
+		case _ => ()
 	}
 }

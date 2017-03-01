@@ -55,7 +55,9 @@ class SMTPClientSession(clientSocket: Socket, sessionId: SessionID) extends Acto
 				write(messageBody)
 				writeln(trailingDot)
 			case SMTPClientQuit => writeln(SMTPCommand.quit)
+			case SMTPClientReset => writeln(SMTPCommand.reset)
 			case ClientDisconnected => closeConnection()
+			case other => logger.warning(s"Received unknown client message: $other")
 		}
 	}
 
@@ -242,10 +244,12 @@ object SMTPPattern {
 }
 
 object SMTPCommand {
+
 	def ehlo(hostId: String): String = s"EHLO $hostId"
 	def mailFrom(sender: String): String = s"MAIL FROM: sender"
 	def receiptTo(recipient: String): String = s"RCPT TO: recipient"
 	def data: String = "DATA"
+	def reset: String = "RSET"
 	def customCommand(cmd: String): String = cmd
 	def quit: String = "QUIT"
 
