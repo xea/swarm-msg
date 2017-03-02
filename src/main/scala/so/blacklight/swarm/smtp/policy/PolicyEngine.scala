@@ -39,7 +39,8 @@ class PolicyEngine extends Actor {
 	}
 
 	def determinePolicies(email: Email): Seq[EmailAction] = {
-		List(new SMTPDelivery(self))
+//		List(context.actorOf(Props(new SMTPDelivery())))
+		List(new SMTPDelivery())
 	}
 }
 

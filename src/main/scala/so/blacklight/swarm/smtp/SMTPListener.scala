@@ -7,6 +7,7 @@ import javax.net.ssl.{SSLContext, SSLServerSocket}
 
 import akka.actor.{Actor, ActorRef, Props}
 import akka.event.Logging
+import so.blacklight.swarm.mail.Email
 import so.blacklight.swarm.net.tls.PermissiveTrustManager
 import so.blacklight.swarm.stats.IncrementCounter
 
@@ -100,5 +101,5 @@ object SMTPListener {
 
 case object AcceptConnections
 case class ClientConnected(remote: Socket)
-case class DeliverMessage(remote: Socket)
+case class DeliverMessage(remote: Socket, message: Email)
 case object ClientQuit

@@ -2,7 +2,7 @@ package so.blacklight.swarm.smtp
 
 import java.net.Socket
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor, ActorRef, Props}
 import akka.event.Logging
 import so.blacklight.swarm.mail.Email
 import so.blacklight.swarm.smtp.policy.PolicyEngine
@@ -19,13 +19,15 @@ class SMTPConnector extends Actor {
     case ClientConnected(clientSocket) => processConnection(clientSocket)
 		case ClientQuit => processQuit()
 		case ReceivedMessage(email) => processPolicies(email)
+		case DeliverMessage(socket, message) => processDelivery(socket, message)
     case _ => println("Received message")
   }
 
   def processConnection(clientSocket: Socket): Unit = {
     logger.info(s"Processing connection from ${clientSocket.getRemoteSocketAddress.toString}")
 
-		val protocolHandler = initSession(clientSocket)
+		val session = initSession(clientSocket)
+		val protocolHandler = context.actorOf(SMTPServerProtocol.props(session, self))
 
     protocolHandler ! SMTPServerGreeting("Swarm SMTP")
   }
@@ -42,23 +44,29 @@ class SMTPConnector extends Actor {
 		println("Precious client has quit")
 	}
 
+	def processDelivery(socket: Socket, message: Email): Unit = {
+		val session = initSession(socket)
+		val protocolHandler = context.actorOf(SMTPClientProtocol.props(session, self))
+
+		protocolHandler ! SMTPClientEhlo("test.local")
+	}
+
 	private def initSession(clientSocket: Socket): ActorRef = {
 		val remoteAddress = clientSocket.getRemoteSocketAddress.toString
 
 		val sessionId = SessionID()
-
-		val nanos = System.nanoTime()
-		val random = Random.nextLong()
 
 		val suffix = "%s-%s".format(remoteAddress.replaceAll("/", ""), sessionId.toString)
 
 		val clientSessionId = "clientSession-%s".format(suffix)
 		val protocolHandlerId = "smtpProtocolHandler-%s".format(suffix)
 
-		val clientSession = context.actorOf(SMTPClientSession.props(clientSocket, sessionId), clientSessionId)
-		val protocolHandler = context.actorOf(SMTPServerProtocol.props(clientSession, self), protocolHandlerId)
-
-		protocolHandler
+		context.actorOf(SMTPClientSession.props(clientSocket, sessionId), clientSessionId)
 	}
 }
 
+object SMTPConnector {
+	def props(): Props = {
+		Props(new SMTPConnector)
+	}
+}
