@@ -41,6 +41,10 @@ class SMTPDelivery extends AsyncAction {
 	}
 
 	override def receive: Receive = {
+		case ApplyAction(email) => processEmail(email) match {
+			case Left(error) => ()
+			case Right(email) => ()
+		}
 		case _ => ()
 	}
 }

@@ -1,8 +1,7 @@
 package so.blacklight.swarm.smtp.policy
 
-import akka.actor.{Actor, Props}
+import akka.actor.{Actor, ActorRef, Props}
 import akka.event.Logging
-import akka.routing.SmallestMailboxPool
 import so.blacklight.swarm.mail.Email
 
 /**
@@ -12,8 +11,6 @@ class PolicyEngine extends Actor {
 
 	val logger = Logging(context.system, this)
 
-	private val policyExecutor = context.actorOf(SmallestMailboxPool(64).props(Props[PolicyExecutor]))
-
 	override def receive: Receive = {
 		case inputMessage: Email => determinePolicies(inputMessage)
 			.foldLeft[Either[String, Email]](Right(inputMessage))((result, policy) =>
@@ -21,14 +18,14 @@ class PolicyEngine extends Actor {
 
 					case Right(message) =>
 						policy match {
-
 							// Asynchronous policies are expected to be actors
-							case asyncPolicy: AsyncAction =>
-								policyExecutor ! ApplyAction(message, asyncPolicy)
+							case Left(actorRef) =>
+								actorRef ! ApplyAction(message)
 								Right(message)
 
 							// Regular (synchronous) policies are evaluated in-line
-							case policy: EmailAction => policy.processEmail(message)
+							case Right(syncPolicy) =>
+								syncPolicy.processEmail(message)
 						}
 
 					case error => error
@@ -38,9 +35,10 @@ class PolicyEngine extends Actor {
 		case ActionApplied(_) => ()
 	}
 
-	def determinePolicies(email: Email): Seq[EmailAction] = {
-//		List(context.actorOf(Props(new SMTPDelivery())))
-		List(new SMTPDelivery())
+	def determinePolicies(email: Email): Seq[Either[ActorRef, EmailAction]] = {
+		List(
+			Left(
+				context.actorOf(Props(new SMTPDelivery()))))
 	}
 }
 
@@ -51,27 +49,8 @@ object PolicyEngine {
 	}
 }
 
-class PolicyExecutor extends Actor {
-
-	val logger = Logging(context.system, this)
-
-	override def receive: Receive = {
-		case ApplyAction(email, action) => sender() ! (action.processEmail(email) match {
-			case Left(error) => ActionError(error)
-			case Right(result) => ActionApplied(result)
-		})
-		case message => logger.warning(s"Unrecognised message: $message")
-	}
-}
-
-object PolicyExecutor {
-	def props(email: Email, action: EmailAction): Props = {
-		Props(new PolicyExecutor)
-	}
-}
-
 // A request to apply an action to an email
-case class ApplyAction(email: Email, action: EmailAction)
+case class ApplyAction(email: Email)
 // Describes the result of an action applied to the message
 case class ActionApplied(email: Email)
 // Describes an error happening during the execution of an action
