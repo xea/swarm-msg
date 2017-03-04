@@ -13,6 +13,10 @@ class SMTPClientProtocol(clientSession: ActorRef, connector: ActorRef) extends A
 	val logger = Logging(system, this)
 
 	override def receive: Receive = {
+		case InitTransaction =>
+			sender() ! processEhlo()
+			become(expectGreeting)
+
 		case _ => become(expectGreeting)
 	}
 

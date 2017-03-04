@@ -48,7 +48,7 @@ class SMTPConnector extends Actor {
 		val session = initSession(socket)
 		val protocolHandler = context.actorOf(SMTPClientProtocol.props(session, self))
 
-		protocolHandler ! SMTPClientEhlo("test.local")
+		protocolHandler ! InitTransaction
 	}
 
 	private def initSession(clientSocket: Socket): ActorRef = {
