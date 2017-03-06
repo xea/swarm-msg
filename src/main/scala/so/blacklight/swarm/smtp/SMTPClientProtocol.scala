@@ -25,23 +25,43 @@ class SMTPClientProtocol(clientSession: ActorRef, connector: ActorRef, msgStream
 		case SMTPServerGreeting =>
 			sender() ! SMTPClientEhlo
 			become(expectEhlo)
+
 		case SMTPServerServiceNotAvailable =>
 			sender() ! SMTPClientQuit
+
+		case unknownMessage =>
+			logger.warning(s"Unknown message received: $unknownMessage")
 	}
 
 	def expectEhlo: PartialFunction[Any, Unit] = {
 		case SMTPServerEhlo(features) =>
-			sender() ! SMTPClientMailFrom("senda")
+			msgStream.headOption
+				.map(email => {
+					become(deliverMessage(email))
+					self ! SMTPServerOk
+				})
+				.getOrElse(sender() ! SMTPClientQuit)
+
+			/*
+			features.filter(feature => "STARTTLS".equals(feature.toUpperCase))
+				.headOption
+			  .map(_ => sender() ! SMTPClientStartTLS)
+			  .getOrElse(() =>
+					become(deliverMessage(msgStream.head))
+					sender() ! )
+					*/
 	}
 
-	def processEhlo(): SMTPClientEvent = {
-
+	def deliverMessage(message: Email): PartialFunction[Any, Unit] = {
+		case SMTPServerOk => ()
+		case _ => ()
 	}
+
 }
 
 object SMTPClientProtocol {
 
-	def props(session: ActorRef, connector: ActorRef): Props = {
-		Props(new SMTPClientProtocol(session, connector))
+	def props(session: ActorRef, connector: ActorRef, msgStream: Stream[Email]): Props = {
+		Props(new SMTPClientProtocol(session, connector, msgStream))
 	}
 }

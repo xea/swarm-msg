@@ -32,7 +32,7 @@ class PolicyEngine extends Actor {
 				})
 		case ActionError(error) => logger.warning(s"An error occurred during action evaluation: $error")
 		// TODO implement a process validation mechanism
-		case ActionApplied(_) => ()
+		case ActionApplied(_) => logger.info("Policy applied successfully")
 	}
 
 	def determinePolicies(email: Email): Seq[Either[ActorRef, EmailAction]] = {

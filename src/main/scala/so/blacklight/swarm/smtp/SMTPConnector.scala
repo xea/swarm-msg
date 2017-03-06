@@ -46,7 +46,7 @@ class SMTPConnector extends Actor {
 
 	def processDelivery(socket: Socket, message: Email): Unit = {
 		val session = initSession(socket)
-		val protocolHandler = context.actorOf(SMTPClientProtocol.props(session, self))
+		val protocolHandler = context.actorOf(SMTPClientProtocol.props(session, self, Stream(message)))
 
 		protocolHandler ! InitTransaction
 	}

@@ -71,6 +71,8 @@ case class SMTPClientDataEnd(msg: Array[Char]) extends SMTPClientCommand
 case object SMTPClientReset extends SMTPClientCommand
 // QUIT
 case object SMTPClientQuit extends SMTPClientCommand
+// STARTTLS
+case object SMTPClientStartTLS extends SMTPClientCommand
 // NOOP
 case object SMTPClientNoOperation extends SMTPClientCommand
 // represents any command that is not defined in the SMTP protocol
@@ -87,13 +89,14 @@ case object SMTPServerDataOk extends SMTPServerResponse
 // 221 Closing connection
 case object SMTPServerQuit extends SMTPServerResponse
 
+// 454 TLS Not availabel
+case object SMTPServerTLSNotAvailable extends SMTPServerResponse
 // 500 Syntax error, command unrecognised
 case object SMTPServerSyntaxError extends SMTPServerResponse
 // 501 Synax error in parameter
 case object SMTPServerInvalidParameter extends SMTPServerResponse
 // 503 Bad sequence of commands
 case object SMTPServerBadSequence extends SMTPServerResponse
-
 case object SMTPServerUnknownCommand extends SMTPServerEvent
 
 /**

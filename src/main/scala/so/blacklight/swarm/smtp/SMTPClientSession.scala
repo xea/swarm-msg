@@ -6,6 +6,7 @@ import java.net.Socket
 import akka.actor.{Actor, Props}
 import akka.event.Logging
 
+import scala.annotation.tailrec
 import scala.util.Random
 import scala.util.matching.Regex
 
@@ -54,6 +55,7 @@ class SMTPClientSession(clientSocket: Socket, sessionId: SessionID) extends Acto
 			case SMTPClientDataEnd(messageBody) =>
 				write(messageBody)
 				writeln(trailingDot)
+			case SMTPClientStartTLS => writeln(SMTPCommand.startTLS)
 			case SMTPClientQuit => writeln(SMTPCommand.quit)
 			case SMTPClientReset => writeln(SMTPCommand.reset)
 			case ClientDisconnected => closeConnection()
@@ -127,16 +129,74 @@ class SMTPClientSession(clientSocket: Socket, sessionId: SessionID) extends Acto
 	}
 
 	def readServerReply(): SMTPServerEvent = {
+		val result = readMultilineServerReply(List())
+
+		result match {
+			case Some(lines) =>
+				lines match {
+					case List() => SMTPServerUnknownCommand
+					case l => extractReplyCode(lines.head) match {
+						case Some(_) => SMTPServerUnknownCommand
+						case None => SMTPServerUnknownCommand
+					}
+				}
+			case None => SMTPServerUnknownCommand
+		}
+	}
+
+	private def extractReplyCode(line: String): Option[Int] = {
+		val pattern = "^([0-9]+)".r
+
+		line match {
+			case pattern(replyCode) => Some(Integer.valueOf(replyCode))
+			case _ => None
+		}
+	}
+
+	@tailrec
+	private def readMultilineServerReply(lines: List[String]): Option[List[String]] = {
 		val line = reader.readLine.trim
+
+		val isTerminator = "^([0-9]{3})(\\s*$|\\s+)".r.findPrefixOf(line)
+		val isMultiline = "^([0-9]{3})-".r.findPrefixOf(line)
+
+
+		if (isTerminator.isDefined) {
+			Some(line :: lines)
+		} else if (isMultiline.isDefined) {
+			readMultilineServerReply(line :: lines)
+		} else {
+			None
+		}
+	}
+
+	/*
+	def readServerReply(): SMTPServerEvent = {
+		//val line = reader.readLine.trim
+		val lineStream = Stream.continually(() => reader.readLine.trim).map(_())
+
+		var readNext = true
+
+		do {
+			val currentLine = reader.readLine.trim
+
+			val isTerminator = "^([0-9]{3})(\\s*$|\\s+)".r.findPrefixOf(currentLine)
+
+			if
+		} while (readNext)
+
+
 
 		line match {
 			case SMTPPattern.serviceReady(intro) => SMTPServerGreeting(intro)
-			case SMTPPattern.serviceNotAvailable => SMTPServerServiceNotAvailable
+			case SMTPPattern.serviceNotAvailable() => SMTPServerServiceNotAvailable
 			case SMTPPattern.ok() => SMTPServerOk
 			case SMTPPattern.badSequence() => SMTPServerBadSequence
+			case SMTPPattern.tlsNotAvailable() => SMTPServerTLSNotAvailable
 			case _ => SMTPServerUnknownCommand
 		}
 	}
+	*/
 
 	/**
 		* Read a multi-line reply from the client sent in response to a "DATA OK" acknowledgement.
@@ -233,6 +293,9 @@ class SMTPClientSession(clientSocket: Socket, sessionId: SessionID) extends Acto
 		}
 	}
 
+	protected def doStartTLS(): Unit = {
+	}
+
 }
 
 object SMTPClientSession {
@@ -264,6 +327,7 @@ object SMTPPattern {
 	val closingTransmission: Regex = "^221\\s+".r
 	val serviceNotAvailable: Regex = "^421\\s+".r
 	val localError: Regex = "^451\\s+".r
+	val tlsNotAvailable: Regex = "^454\\s+".r
 
 	val commandNotRecognised: Regex = "^500\\s+".r
 	val invalidArgument: Regex = "^501\\s+".r
@@ -281,6 +345,7 @@ object SMTPCommand {
 	def data: String = "DATA"
 	def reset: String = "RSET"
 	def customCommand(cmd: String): String = cmd
+	def startTLS: String = "STARTTLS"
 	def quit: String = "QUIT"
 
 }
