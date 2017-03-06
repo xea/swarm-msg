@@ -63,7 +63,7 @@ class SMTPClientSession(clientSocket: Socket, sessionId: SessionID) extends Acto
 
 	def sendServerEvent(msg: SMTPServerEvent): Unit = {
 		msg match {
-			case SMTPServerGreeting(greeting) => writeln(SMTPReplyMessages.connectOk(greeting))
+			case SMTPServerGreeting(greeting) => writeln(SMTPReplyMessages.serviceReady(greeting))
 			case SMTPServerEhlo(capabilities) =>
 				capabilities.init.foreach(capability => writeln(s"250-$capability"))
 				Option(capabilities.last).foreach(capability => writeln(s"250 $capability"))
@@ -88,9 +88,14 @@ class SMTPClientSession(clientSocket: Socket, sessionId: SessionID) extends Acto
 		case msg @ SMTPServerDataReady =>
 			send(msg)
 			sender() ! readData()
+
 		case msg @ SMTPServerQuit =>
 			send(msg)
 			closeConnection()
+
+		case InitTransaction =>
+			sender() ! readServerReply()
+
 		case ClientDisconnected =>
 			closeConnection()
 		// If the message does not have a specific handler, then we'll just try and send it to the client
@@ -118,6 +123,18 @@ class SMTPClientSession(clientSocket: Socket, sessionId: SessionID) extends Acto
 			case SMTPPattern.noop() => SMTPClientNoOperation
 			case SMTPPattern.quit() => SMTPClientQuit
 			case _ => SMTPClientUnknownCommand
+		}
+	}
+
+	def readServerReply(): SMTPServerEvent = {
+		val line = reader.readLine.trim
+
+		line match {
+			case SMTPPattern.serviceReady(intro) => SMTPServerGreeting(intro)
+			case SMTPPattern.serviceNotAvailable => SMTPServerServiceNotAvailable
+			case SMTPPattern.ok() => SMTPServerOk
+			case SMTPPattern.badSequence() => SMTPServerBadSequence
+			case _ => SMTPServerUnknownCommand
 		}
 	}
 
@@ -238,9 +255,22 @@ object SMTPPattern {
 	val reset: Regex = "^(?i)RSET$".r
 
 	// Server responses
-	val success: Regex = "^200".r
-	val systemStatus: Regex = "^201".r
-	val ok: Regex = "^250".r
+	val success: Regex = "^200\\s+".r
+	val systemStatus: Regex = "^201\\s+".r
+	val nonstandardSuccess: Regex = "^200\\s+".r
+	val ok: Regex = "^250\\s+".r
+
+	val serviceReady: Regex = "^220\\s+(.*)\\s*$".r
+	val closingTransmission: Regex = "^221\\s+".r
+	val serviceNotAvailable: Regex = "^421\\s+".r
+	val localError: Regex = "^451\\s+".r
+
+	val commandNotRecognised: Regex = "^500\\s+".r
+	val invalidArgument: Regex = "^501\\s+".r
+	val notImplemented: Regex = "^502\\s+".r
+	val badSequence: Regex = "^503\\s+".r
+	val accessDenied: Regex = "^530\\s+".r
+
 }
 
 object SMTPCommand {
@@ -267,8 +297,8 @@ object SMTPReplyMessages {
 	def ok: String = "250 OK"
 
 	// Connection initial reply codes
-	def connectOk(domain: String): String = s"220 $domain service ready"
-	def connectNotAvailable(domain: String): String = s"421 $domain service not available, closing channel"
+	def serviceReady(domain: String): String = s"220 $domain service ready"
+	def serviceNotAvailable(domain: String): String = s"421 $domain service not available, closing channel"
 
 	// EHLO/HELO reply codes
 	def ehloOk(domain: String): String = s"250 Welcome $domain"

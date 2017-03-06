@@ -2,11 +2,12 @@ package so.blacklight.swarm.smtp
 
 import akka.actor.{Actor, ActorRef, Props}
 import akka.event.Logging
+import so.blacklight.swarm.mail.Email
 
 /**
 	*
 	*/
-class SMTPClientProtocol(clientSession: ActorRef, connector: ActorRef) extends Actor {
+class SMTPClientProtocol(clientSession: ActorRef, connector: ActorRef, msgStream: Stream[Email]) extends Actor {
 
 	import context._
 
@@ -14,7 +15,7 @@ class SMTPClientProtocol(clientSession: ActorRef, connector: ActorRef) extends A
 
 	override def receive: Receive = {
 		case InitTransaction =>
-			sender() ! processEhlo()
+			clientSession ! InitTransaction
 			become(expectGreeting)
 
 		case _ => become(expectGreeting)
@@ -23,6 +24,18 @@ class SMTPClientProtocol(clientSession: ActorRef, connector: ActorRef) extends A
 	def expectGreeting: PartialFunction[Any, Unit] = {
 		case SMTPServerGreeting =>
 			sender() ! SMTPClientEhlo
+			become(expectEhlo)
+		case SMTPServerServiceNotAvailable =>
+			sender() ! SMTPClientQuit
+	}
+
+	def expectEhlo: PartialFunction[Any, Unit] = {
+		case SMTPServerEhlo(features) =>
+			sender() ! SMTPClientMailFrom("senda")
+	}
+
+	def processEhlo(): SMTPClientEvent = {
+
 	}
 }
 

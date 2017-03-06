@@ -37,6 +37,7 @@ trait SMTPServerResponse extends SMTPServerEvent
   */
 case class SMTPServerGreeting(greeting: String) extends SMTPServerEvent
 
+case object SMTPServerServiceNotAvailable extends SMTPServerEvent
 /**
 	* HELO/EHLO message sent by the client after receiving the initial greeting from the server.
 	*
@@ -92,6 +93,8 @@ case object SMTPServerSyntaxError extends SMTPServerResponse
 case object SMTPServerInvalidParameter extends SMTPServerResponse
 // 503 Bad sequence of commands
 case object SMTPServerBadSequence extends SMTPServerResponse
+
+case object SMTPServerUnknownCommand extends SMTPServerEvent
 
 /**
 	* Represents the event of successfully receiving a complete e-mail from the client
