@@ -1,7 +1,5 @@
 package so.blacklight.swarm.smtp
 
-import java.net.Socket
-
 import so.blacklight.swarm.mail.Email
 
 /**
@@ -35,6 +33,7 @@ trait SMTPServerResponse extends SMTPServerEvent
 	* @param greeting additinal greeting message (may be left empty)
 	* @example 220 hostname.domainname.tld ESMTP Postfix (Ubuntu)
   */
+// TODO rename this event to Service Ready or something
 case class SMTPServerGreeting(greeting: String) extends SMTPServerEvent
 
 case object SMTPServerServiceNotAvailable extends SMTPServerEvent

@@ -22,7 +22,7 @@ class SMTPClientProtocol(clientSession: ActorRef, connector: ActorRef, msgStream
 	}
 
 	def expectGreeting: PartialFunction[Any, Unit] = {
-		case SMTPServerGreeting =>
+		case SMTPServerGreeting(_) =>
 			sender() ! SMTPClientEhlo
 			become(expectEhlo)
 

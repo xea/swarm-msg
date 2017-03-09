@@ -133,15 +133,35 @@ class SMTPClientSession(clientSocket: Socket, sessionId: SessionID) extends Acto
 
 		result match {
 			case Some(lines) =>
-				lines match {
-					case List() => SMTPServerUnknownCommand
-					case l => extractReplyCode(lines.head) match {
-						case Some(_) => SMTPServerUnknownCommand
-						case None => SMTPServerUnknownCommand
-					}
+				extractReplyCode(lines) match {
+					case (Some(replyCode), text) => resolveServerReply(replyCode, text)
+					case _ => SMTPServerUnknownCommand
 				}
 			case None => SMTPServerUnknownCommand
 		}
+	}
+
+	def resolveServerReply(replyCode: Int, lines: List[String]): SMTPServerEvent = {
+		replyCode match {
+			case SMTPReplyCode.ok => SMTPServerOk
+			case SMTPReplyCode.serviceReady => SMTPServerGreeting(lines.mkString("\n"))
+			case SMTPReplyCode.tlsNotAvailable => SMTPServerTLSNotAvailable
+			case _ => SMTPServerUnknownCommand
+		}
+	}
+
+	private def extractReplyCode(lines: List[String]): (Option[Int], List[String]) = {
+		val pattern = "^([0-9]+)(-|\\s+)(.*)$".r
+
+		lines.map(_ match {
+			case pattern(replyCodeStr, _, line) => (Some(replyCodeStr.toInt), line)
+			case unknownLine => (None, unknownLine)
+		}).foldLeft[(Option[Int], List[String])]((None, List()))((acc, x) => {
+			(acc._1 match {
+				case None => x._1
+				case other => other
+			}, acc._2 :+ x._2)
+		})
 	}
 
 	private def extractReplyCode(line: String): Option[Int] = {
@@ -160,11 +180,10 @@ class SMTPClientSession(clientSocket: Socket, sessionId: SessionID) extends Acto
 		val isTerminator = "^([0-9]{3})(\\s*$|\\s+)".r.findPrefixOf(line)
 		val isMultiline = "^([0-9]{3})-".r.findPrefixOf(line)
 
-
 		if (isTerminator.isDefined) {
-			Some(line :: lines)
+			Some(lines :+ line)
 		} else if (isMultiline.isDefined) {
-			readMultilineServerReply(line :: lines)
+			readMultilineServerReply(lines :+ line)
 		} else {
 			None
 		}
@@ -316,24 +335,12 @@ object SMTPPattern {
 	val quit: Regex = "^(?i)QUIT$".r
 	val noop: Regex = "^(?i)NOOP$".r
 	val reset: Regex = "^(?i)RSET$".r
+}
 
-	// Server responses
-	val success: Regex = "^200\\s+".r
-	val systemStatus: Regex = "^201\\s+".r
-	val nonstandardSuccess: Regex = "^200\\s+".r
-	val ok: Regex = "^250\\s+".r
-
-	val serviceReady: Regex = "^220\\s+(.*)\\s*$".r
-	val closingTransmission: Regex = "^221\\s+".r
-	val serviceNotAvailable: Regex = "^421\\s+".r
-	val localError: Regex = "^451\\s+".r
-	val tlsNotAvailable: Regex = "^454\\s+".r
-
-	val commandNotRecognised: Regex = "^500\\s+".r
-	val invalidArgument: Regex = "^501\\s+".r
-	val notImplemented: Regex = "^502\\s+".r
-	val badSequence: Regex = "^503\\s+".r
-	val accessDenied: Regex = "^530\\s+".r
+object SMTPReplyCode {
+	val serviceReady: Int = 220
+	val ok: Int = 250
+	val tlsNotAvailable: Int = 454
 
 }
 
