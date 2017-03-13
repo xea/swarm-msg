@@ -10,6 +10,10 @@ class Address private (address: String) {
 		* @return true if the address is a null address
 		*/
 	def isNullAddress(): Boolean = Address.NULL.equals(address)
+
+	def toEmailAddress(): String = s"<$address>"
+
+	override def toString: String = s"Address($address)@${hashCode()}"
 }
 
 object Address {

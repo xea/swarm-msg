@@ -88,6 +88,8 @@ case object SMTPServerDataOk extends SMTPServerResponse
 // 221 Closing connection
 case object SMTPServerQuit extends SMTPServerResponse
 
+// 451 Local error
+case object SMTPServerLocalError extends SMTPServerResponse
 // 454 TLS Not availabel
 case object SMTPServerTLSNotAvailable extends SMTPServerResponse
 // 500 Syntax error, command unrecognised

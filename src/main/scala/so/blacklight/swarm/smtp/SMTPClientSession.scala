@@ -102,6 +102,9 @@ class SMTPClientSession(clientSocket: Socket, sessionId: SessionID) extends Acto
 			closeConnection()
 		// If the message does not have a specific handler, then we'll just try and send it to the client
 		// and expect a one-line reply
+		case msg: SMTPClientEvent =>
+			send(msg)
+			sender() ! readServerReply()
 		case msg: SMTPEvent =>
 			send(msg)
 			sender() ! readReply()
@@ -146,6 +149,7 @@ class SMTPClientSession(clientSocket: Socket, sessionId: SessionID) extends Acto
 			case SMTPReplyCode.ok => SMTPServerOk
 			case SMTPReplyCode.serviceReady => SMTPServerGreeting(lines.mkString("\n"))
 			case SMTPReplyCode.tlsNotAvailable => SMTPServerTLSNotAvailable
+			case SMTPReplyCode.dataReady => SMTPServerDataReady
 			case _ => SMTPServerUnknownCommand
 		}
 	}
@@ -188,34 +192,6 @@ class SMTPClientSession(clientSocket: Socket, sessionId: SessionID) extends Acto
 			None
 		}
 	}
-
-	/*
-	def readServerReply(): SMTPServerEvent = {
-		//val line = reader.readLine.trim
-		val lineStream = Stream.continually(() => reader.readLine.trim).map(_())
-
-		var readNext = true
-
-		do {
-			val currentLine = reader.readLine.trim
-
-			val isTerminator = "^([0-9]{3})(\\s*$|\\s+)".r.findPrefixOf(currentLine)
-
-			if
-		} while (readNext)
-
-
-
-		line match {
-			case SMTPPattern.serviceReady(intro) => SMTPServerGreeting(intro)
-			case SMTPPattern.serviceNotAvailable() => SMTPServerServiceNotAvailable
-			case SMTPPattern.ok() => SMTPServerOk
-			case SMTPPattern.badSequence() => SMTPServerBadSequence
-			case SMTPPattern.tlsNotAvailable() => SMTPServerTLSNotAvailable
-			case _ => SMTPServerUnknownCommand
-		}
-	}
-	*/
 
 	/**
 		* Read a multi-line reply from the client sent in response to a "DATA OK" acknowledgement.
@@ -340,6 +316,7 @@ object SMTPPattern {
 object SMTPReplyCode {
 	val serviceReady: Int = 220
 	val ok: Int = 250
+	val dataReady: Int = 354
 	val tlsNotAvailable: Int = 454
 
 }
@@ -347,8 +324,8 @@ object SMTPReplyCode {
 object SMTPCommand {
 
 	def ehlo(hostId: String): String = s"EHLO $hostId"
-	def mailFrom(sender: String): String = s"MAIL FROM: sender"
-	def receiptTo(recipient: String): String = s"RCPT TO: recipient"
+	def mailFrom(sender: String): String = s"MAIL FROM: $sender"
+	def receiptTo(recipient: String): String = s"RCPT TO: $recipient"
 	def data: String = "DATA"
 	def reset: String = "RSET"
 	def customCommand(cmd: String): String = cmd
