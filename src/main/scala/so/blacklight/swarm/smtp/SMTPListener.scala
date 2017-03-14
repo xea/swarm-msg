@@ -12,6 +12,9 @@ import so.blacklight.swarm.net.tls.PermissiveTrustManager
 import so.blacklight.swarm.stats.IncrementCounter
 
 /**
+	* Listens on a configured network socket waiting for incoming SMTP connections.
+	*
+	* Once a connection has been established, the connection is processed by an
   */
 class SMTPListener(config: SMTPConfig) extends Actor {
 
@@ -62,7 +65,7 @@ class SMTPListener(config: SMTPConfig) extends Actor {
     case _ => logger.warning("SMTPListener has received an unknown message")
   }
 
-	def listen(): ServerSocket = {
+	private def listen(): ServerSocket = {
 		val socket = if (config.ssl) {
 			createTLSListenSocket
 		} else {
@@ -72,7 +75,7 @@ class SMTPListener(config: SMTPConfig) extends Actor {
 		socket
 	}
 
-	def createTLSListenSocket: ServerSocket = {
+	private def createTLSListenSocket: ServerSocket = {
 		val context = SSLContext.getInstance(TLS_VERSION)
 		context.init(Array(), Array(new PermissiveTrustManager()), new SecureRandom())
 
@@ -82,7 +85,12 @@ class SMTPListener(config: SMTPConfig) extends Actor {
 		socket
 	}
 
-	def createListenSocket: ServerSocket = {
+	/**
+		* Create a plain network socket to listen on for incoming, unencrypted SMTP sessions
+		*
+		* @return listening socket
+		*/
+	private def createListenSocket: ServerSocket = {
 		val socketFactory = ServerSocketFactory.getDefault
 		socketFactory.createServerSocket
 	}

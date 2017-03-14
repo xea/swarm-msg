@@ -10,6 +10,10 @@ import scala.annotation.tailrec
 import scala.util.Random
 import scala.util.matching.Regex
 
+/**
+	* An identifier that is associated with an SMTP session
+	* @param id
+	*/
 class SessionID(id: String) {
 	override def toString: String = id
 }
@@ -36,47 +40,91 @@ class SMTPClientSession(clientSocket: Socket, sessionId: SessionID) extends Acto
 
 	private val trailingDot: Array[Char] = Array('\r', '\n', '.', '\r', '\n')
 
+	/**
+		* Send an SMTP message to the remote peer. If it is a server reply then the message shall be
+		* prefixed with the corresponding numeric server reply.
+		*
+		* @param msg SMTP event to send
+		*/
 	def send(msg: SMTPEvent): Unit = {
 		msg match {
 			case clientMsg: SMTPClientEvent =>
 				sendClientEvent(clientMsg)
+
 			case serverMsg: SMTPServerEvent =>
 				sendServerEvent(serverMsg)
-			case _ => ()
+
+			case unknownEvent =>
+				logger.warning(s"Can't send non-SMTP events over an SMTP connection: $unknownEvent")
 		}
 	}
 
+	/**
+		* Send an SMTP client command to the SMTP server.
+		*
+		* @param msg SMTP client command to send
+		*/
 	def sendClientEvent(msg: SMTPClientEvent): Unit = {
 		msg match {
-			case SMTPClientEhlo(hostId) => writeln(SMTPCommand.ehlo(hostId))
-			case SMTPClientMailFrom(sender) => writeln(SMTPCommand.mailFrom(sender))
-			case SMTPClientReceiptTo(recipient) => writeln(SMTPCommand.receiptTo(recipient))
-			case SMTPClientDataBegin => writeln(SMTPCommand.data)
+			case SMTPClientEhlo(hostId) =>
+				writeln(SMTPCommand.ehlo(hostId))
+
+			case SMTPClientMailFrom(sender) =>
+				writeln(SMTPCommand.mailFrom(sender))
+
+			case SMTPClientReceiptTo(recipient) =>
+				writeln(SMTPCommand.receiptTo(recipient))
+
+			case SMTPClientDataBegin =>
+				writeln(SMTPCommand.data)
+
 			case SMTPClientDataEnd(messageBody) =>
 				write(messageBody)
 				write(trailingDot)
-			case SMTPClientStartTLS => writeln(SMTPCommand.startTLS)
-			case SMTPClientQuit => writeln(SMTPCommand.quit)
-			case SMTPClientReset => writeln(SMTPCommand.reset)
-			case ClientDisconnected => closeConnection()
-			case other => logger.warning(s"Received unknown client message: $other")
+
+			case SMTPClientStartTLS =>
+				writeln(SMTPCommand.startTLS)
+
+			case SMTPClientQuit =>
+				writeln(SMTPCommand.quit)
+
+			case SMTPClientReset =>
+				writeln(SMTPCommand.reset)
+
+			case ClientDisconnected =>
+				closeConnection()
+
+			case SMTPClientCustomCommand(command) =>
+				writeln(command)
+
+			case other =>
+				logger.warning(s"Client message not implemented: $other")
 		}
 	}
 
 	def sendServerEvent(msg: SMTPServerEvent): Unit = {
 		msg match {
-			case SMTPServerGreeting(greeting) => writeln(SMTPReplyMessages.serviceReady(greeting))
+			case SMTPServerServiceReady(greeting) =>
+				writeln(SMTPReplyMessages.serviceReady(greeting))
 			case SMTPServerEhlo(capabilities) =>
 				capabilities.init.foreach(capability => writeln(s"250-$capability"))
 				Option(capabilities.last).foreach(capability => writeln(s"250 $capability"))
-			case SMTPServerDataReady => writeln(SMTPReplyMessages.dataReady)
-			case SMTPServerDataOk => writeln(SMTPReplyMessages.dataOk)
-			case SMTPServerOk => writeln(SMTPReplyMessages.ok)
-			case SMTPServerQuit => writeln(SMTPReplyMessages.ok)
-			case SMTPServerSyntaxError => writeln(SMTPReplyMessages.commandNotRecognised)
-			case SMTPServerInvalidParameter => writeln(SMTPReplyMessages.invalidArgument)
-			case SMTPServerBadSequence => writeln(SMTPReplyMessages.badSequence)
-			case other => logger.warning(s"Received unknown message request: $other")
+			case SMTPServerDataReady =>
+				writeln(SMTPReplyMessages.dataReady)
+			case SMTPServerDataOk =>
+				writeln(SMTPReplyMessages.dataOk)
+			case SMTPServerOk =>
+				writeln(SMTPReplyMessages.ok)
+			case SMTPServerQuit =>
+				writeln(SMTPReplyMessages.ok)
+			case SMTPServerSyntaxError =>
+				writeln(SMTPReplyMessages.commandNotRecognised)
+			case SMTPServerInvalidParameter =>
+				writeln(SMTPReplyMessages.invalidArgument)
+			case SMTPServerBadSequence =>
+				writeln(SMTPReplyMessages.badSequence)
+			case other =>
+				logger.warning(s"Server message not implemented: $other")
 		}
 	}
 
@@ -87,29 +135,36 @@ class SMTPClientSession(clientSocket: Socket, sessionId: SessionID) extends Acto
 		* @return
 		*/
 	override def receive: Receive = {
+		// Special case: after a DATA request the client will send a message body of arbitrary length
 		case msg @ SMTPServerDataReady =>
 			send(msg)
 			sender() ! readData()
 
+		// Special case: closing connection after the client requested QUIT
 		case msg @ SMTPServerQuit =>
 			send(msg)
 			closeConnection()
 
+		// Special case: Initiating a client delivery and expecting the server to greet us
 		case InitTransaction =>
 			sender() ! readServerReply()
 
+		// Special case: we're initiating the termination of the connection
 		case ClientDisconnected =>
 			closeConnection()
-		// If the message does not have a specific handler, then we'll just try and send it to the client
-		// and expect a one-line reply
+
+		// Other client events are just sent to the server and a server reply is expected
 		case msg: SMTPClientEvent =>
 			send(msg)
 			sender() ! readServerReply()
+
+		// For other SMTP events we just send them to the remote peer and hope for the best
 		case msg: SMTPEvent =>
 			send(msg)
 			sender() ! readReply()
+
 		case otherMsg =>
-			logger.warning(s"Unknown message found: $otherMsg")
+			logger.warning(s"Expected an SMTP event, found: $otherMsg")
 	}
 
 	/**
@@ -147,7 +202,7 @@ class SMTPClientSession(clientSocket: Socket, sessionId: SessionID) extends Acto
 	def resolveServerReply(replyCode: Int, lines: List[String]): SMTPServerEvent = {
 		replyCode match {
 			case SMTPReplyCode.ok => SMTPServerOk
-			case SMTPReplyCode.serviceReady => SMTPServerGreeting(lines.mkString("\n"))
+			case SMTPReplyCode.serviceReady => SMTPServerServiceReady(lines.mkString("\n"))
 			case SMTPReplyCode.tlsNotAvailable => SMTPServerTLSNotAvailable
 			case SMTPReplyCode.dataReady => SMTPServerDataReady
 			case _ => SMTPServerUnknownCommand
@@ -316,15 +371,25 @@ object SMTPPattern {
 }
 
 object SMTPReplyCode {
+	val nonStandardOk: Int = 200
+	val systemStatus: Int = 211
+	val help: Int = 214
 	val serviceReady: Int = 220
 	val ok: Int = 250
+	val notLocal: Int = 251
 	val dataReady: Int = 354
+	val serviceNotAvailable: Int = 421
+	val mailboxUnavailable: Int = 450
+	val localError: Int = 451
+	val insufficientStorage: Int = 452
 	val tlsNotAvailable: Int = 454
-
+	val syntaxError: Int = 500
+	val unknownParameter: Int = 501
+	val notImplemented: Int = 502
+	val badSequence = 503
 }
 
 object SMTPCommand {
-
 	def ehlo(hostId: String): String = s"EHLO $hostId"
 	def mailFrom(sender: String): String = s"MAIL FROM: $sender"
 	def receiptTo(recipient: String): String = s"RCPT TO: $recipient"

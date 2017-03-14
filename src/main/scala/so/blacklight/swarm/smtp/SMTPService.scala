@@ -10,6 +10,8 @@ import so.blacklight.swarm.control.StartService
   */
 class SMTPService extends Actor {
 
+  private val NUMBER_OF_CONNECTORS: Int = 16
+
   val logger = Logging(context.system, this)
 
   // TODO assign port numbers from configuration
@@ -34,8 +36,6 @@ class SMTPService extends Actor {
     ActorRefRoutee(worker)
   })
   */
-
-  private val NUMBER_OF_CONNECTORS: Int = 8
 
   private val smtpRouter = context.actorOf(SmallestMailboxPool(NUMBER_OF_CONNECTORS).props(Props[SMTPConnector]))
 

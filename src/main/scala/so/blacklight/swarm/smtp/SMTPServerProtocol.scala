@@ -23,7 +23,7 @@ class SMTPServerProtocol(clientSession: ActorRef, connector: ActorRef) extends A
 		* after issuing the server greeting
 		*/
 	override def receive: Receive = {
-		case greeting @ SMTPServerGreeting(_) =>
+		case greeting @ SMTPServerServiceReady(_) =>
 			clientSession ! greeting
 			become(expectEhlo)
 		case ClientDisconnected =>

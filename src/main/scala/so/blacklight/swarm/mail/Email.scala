@@ -1,10 +1,10 @@
 package so.blacklight.swarm.mail
 
-class Email private (envelope: Envelope, subject: String) {
+class Email private (envelope: Envelope, body: String) {
 
 	def getEnvelope(): Envelope = envelope
 
-	def getBody(): Array[Char] = subject.toCharArray
+	def getBody(): Array[Char] = body.toCharArray
 }
 
 object Email {

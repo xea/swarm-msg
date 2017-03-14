@@ -23,7 +23,7 @@ class SMTPClientProtocol(clientSession: ActorRef, connector: ActorRef, msgStream
 	}
 
 	def expectGreeting: PartialFunction[Any, Unit] = {
-		case SMTPServerGreeting(_) =>
+		case SMTPServerServiceReady(_) =>
 			sender() ! SMTPClientEhlo("localhost")
 			logger.info("Got server reply, sent ehlo, waiting reply to ehlo")
 			become(expectEhlo)
@@ -41,14 +41,6 @@ class SMTPClientProtocol(clientSession: ActorRef, connector: ActorRef, msgStream
 			logger.info(s"Everything looks good, stream has ${msgStream.length} items")
 			become(loopMessages(msgStream))
 			self ! NextMessage
-			/*
-			msgStream.headOption
-				.map(email => {
-					become(preTransmission(email))
-					self ! BeginTransmission
-				})
-				.getOrElse(sender() ! SMTPClientQuit)
-				*/
 
 			/*
 			features.filter(feature => "STARTTLS".equals(feature.toUpperCase))

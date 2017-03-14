@@ -34,7 +34,7 @@ trait SMTPServerResponse extends SMTPServerEvent
 	* @example 220 hostname.domainname.tld ESMTP Postfix (Ubuntu)
   */
 // TODO rename this event to Service Ready or something
-case class SMTPServerGreeting(greeting: String) extends SMTPServerEvent
+case class SMTPServerServiceReady(greeting: String) extends SMTPServerEvent
 
 case object SMTPServerServiceNotAvailable extends SMTPServerEvent
 /**
@@ -78,6 +78,8 @@ case object SMTPClientNoOperation extends SMTPClientCommand
 case object SMTPClientUnknownCommand extends SMTPClientEvent
 // an error that happens on the client's side (eg. time out, exceptions, etc)
 case class SMTPClientError(error: ClientError) extends SMTPClientEvent
+// a custom, single-line command that can be used for non-standard messages
+case class SMTPClientCustomCommand(cmd: String) extends SMTPClientEvent
 
 // 250 Ok
 case object SMTPServerOk extends SMTPServerResponse

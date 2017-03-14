@@ -30,7 +30,7 @@ class SMTPConnector extends Actor {
 		val session = initSession(clientSocket)
 		val protocolHandler = context.actorOf(SMTPServerProtocol.props(session, self))
 
-    protocolHandler ! SMTPServerGreeting("Swarm SMTP")
+    protocolHandler ! SMTPServerServiceReady("Swarm SMTP")
   }
 
 	def processPolicies(email: Email): Unit = {

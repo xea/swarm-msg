@@ -20,10 +20,10 @@ class SwarmServer {
 	private val inbox = Inbox.create(system)
 
 	// The following are the major service actors managed by the Swarm server
-	private val smtpService = system.actorOf(Props[SMTPService], "smtpService")
-	private val echoService = system.actorOf(Props[EchoService], "echoService")
-	private val httpService = system.actorOf(Props[HttpService], "httpService")
-	private val statService = system.actorOf(Props[StatService], "statService")
+	private val smtpService = system.actorOf(Props[SMTPService], SwarmServer.SMTP_SERVICE)
+	private val echoService = system.actorOf(Props[EchoService], SwarmServer.ECHO_SERVICE)
+	private val httpService = system.actorOf(Props[HttpService], SwarmServer.HTTP_SERVICE)
+	private val statService = system.actorOf(Props[StatService], SwarmServer.STAT_SERVICE)
 	private val storageService = system.actorOf(Props[ObjectStorage], "objectStorageService")
 
 	def start(): Unit = {
@@ -41,4 +41,11 @@ class SwarmServer {
 		statService ! PoisonPill
 		storageService ! PoisonPill
 	}
+}
+
+object SwarmServer {
+	val SMTP_SERVICE: String = "smtpService"
+	val ECHO_SERVICE: String = "echoService"
+	val HTTP_SERVICE: String = "httpService"
+	val STAT_SERVICE: String = "statService"
 }
