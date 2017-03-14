@@ -19,7 +19,8 @@ class SMTPConnector extends Actor {
     case ClientConnected(clientSocket) => processConnection(clientSocket)
 		case ClientQuit => processQuit()
 		case ReceivedMessage(email) => processPolicies(email)
-		case DeliverMessage(socket, message) => processDelivery(socket, message)
+		case DeliverMessage(socket, message) => processDelivery(socket, Stream(message))
+		case DeliverMessages(socket, messages) => processDelivery(socket, messages)
     case _ => println("Received message")
   }
 
@@ -44,9 +45,9 @@ class SMTPConnector extends Actor {
 		println("Precious client has quit")
 	}
 
-	def processDelivery(socket: Socket, message: Email): Unit = {
+	def processDelivery(socket: Socket, messages: Stream[Email]): Unit = {
 		val session = initSession(socket)
-		val protocolHandler = context.actorOf(SMTPClientProtocol.props(session, self, Stream(message)))
+		val protocolHandler = context.actorOf(SMTPClientProtocol.props(session, self, messages))
 
 		protocolHandler ! InitTransaction
 	}

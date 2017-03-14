@@ -4,7 +4,7 @@ import java.net.Socket
 
 import akka.actor.ActorSystem
 import so.blacklight.swarm.mail.{Email, Envelope}
-import so.blacklight.swarm.smtp.{DeliverMessage, SMTPConnector}
+import so.blacklight.swarm.smtp.{DeliverMessage, DeliverMessages, SMTPConnector}
 
 /**
 	*
@@ -17,12 +17,15 @@ object SwarmClientTest extends App {
 
 	val system = ActorSystem("SwarmClient")
 
-	Envelope("sender@address.com", List("recipient@address.com")).map(envelope => {
-		val body = "Test body".toCharArray
+	Envelope("test@address.com", List("test@address.com")).map(envelope => {
+		val body = "Subject: Blabalab\r\n\r\nTest body".toCharArray
 		Email(envelope, body) match {
 			case Right(email) =>
 				val socket = new Socket("localhost", 5025)
-				system.actorOf(SMTPConnector.props()) ! DeliverMessage(socket, email)
+				val connector = system.actorOf(SMTPConnector.props())
+
+				connector ! DeliverMessages(socket, Stream(email, email, email))
+				//connector ! DeliverMessages(socket, Stream.continually(() => email).map(_()))
 			case _ => ()
 		}
 	})

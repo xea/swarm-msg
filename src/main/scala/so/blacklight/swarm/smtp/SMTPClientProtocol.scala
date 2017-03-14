@@ -16,6 +16,7 @@ class SMTPClientProtocol(clientSession: ActorRef, connector: ActorRef, msgStream
 	override def receive: Receive = {
 		case InitTransaction =>
 			clientSession ! InitTransaction
+			logger.info("Initiating transaction")
 			become(expectGreeting)
 
 		case _ => become(expectGreeting)
@@ -24,6 +25,7 @@ class SMTPClientProtocol(clientSession: ActorRef, connector: ActorRef, msgStream
 	def expectGreeting: PartialFunction[Any, Unit] = {
 		case SMTPServerGreeting(_) =>
 			sender() ! SMTPClientEhlo("localhost")
+			logger.info("Got server reply, sent ehlo, waiting reply to ehlo")
 			become(expectEhlo)
 
 		case SMTPServerServiceNotAvailable =>
@@ -35,14 +37,18 @@ class SMTPClientProtocol(clientSession: ActorRef, connector: ActorRef, msgStream
 
 	def expectEhlo: PartialFunction[Any, Unit] = {
 		case SMTPServerEhlo(features) =>
-			logger.info("That's great")
 		case SMTPServerOk =>
+			logger.info(s"Everything looks good, stream has ${msgStream.length} items")
+			become(loopMessages(msgStream))
+			self ! NextMessage
+			/*
 			msgStream.headOption
 				.map(email => {
 					become(preTransmission(email))
 					self ! BeginTransmission
 				})
 				.getOrElse(sender() ! SMTPClientQuit)
+				*/
 
 			/*
 			features.filter(feature => "STARTTLS".equals(feature.toUpperCase))
@@ -54,6 +60,28 @@ class SMTPClientProtocol(clientSession: ActorRef, connector: ActorRef, msgStream
 					*/
 		case other =>
 			logger.warning(s"Unknown message received: $other")
+	}
+
+	def loopMessages(messageStream: Stream[Email]): PartialFunction[Any, Unit] = {
+		case NextMessage =>
+			logger.info(s"Taking next message, there are ${messageStream.length} items left")
+
+			messageStream match {
+				case x #:: _ =>
+					become(preTransmission(x), false)
+					self ! BeginTransmission
+				case _ =>
+					unbecome()
+					logger.info("No more messages :'(")
+			}
+
+		case MessageSent =>
+			messageStream match {
+				case _ #:: remainder =>
+					become(loopMessages(remainder))
+				case _ => ()
+			}
+			self ! NextMessage
 	}
 
 	def preTransmission(message: Email): PartialFunction[Any, Unit] = {
@@ -73,7 +101,7 @@ class SMTPClientProtocol(clientSession: ActorRef, connector: ActorRef, msgStream
 			self ! SMTPClientQuit
 
 		case RecipientsSent =>
-			become(sendData(message.getBody()), false)
+			become(sendData(message.getBody()), true)
 			self ! RecipientsSent
 
 		case _ => ()
@@ -81,7 +109,7 @@ class SMTPClientProtocol(clientSession: ActorRef, connector: ActorRef, msgStream
 
 	def listRecipients(recipients: List[Address]): PartialFunction[Any, Unit] = {
 		case NextRecipient =>
-			recipients.headOption.foreach(recipient => {
+			recipients.headOption.map(recipient => {
 				clientSession ! SMTPClientReceiptTo(recipient.toEmailAddress())
 			})
 		case SMTPServerOk =>
@@ -132,3 +160,4 @@ case object BeginTransmission
 case object NextRecipient
 case object RecipientsSent
 case object MessageSent
+case object NextMessage

@@ -4,7 +4,7 @@ class Email private (envelope: Envelope, subject: String) {
 
 	def getEnvelope(): Envelope = envelope
 
-	def getBody(): Array[Char] = Array()
+	def getBody(): Array[Char] = subject.toCharArray
 }
 
 object Email {

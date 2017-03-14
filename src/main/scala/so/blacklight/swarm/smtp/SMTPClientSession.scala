@@ -34,7 +34,7 @@ class SMTPClientSession(clientSocket: Socket, sessionId: SessionID) extends Acto
 	val writer = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream))
 	val logger = Logging(context.system, this)
 
-	private val trailingDot: String = "\r\n.\r\n"
+	private val trailingDot: Array[Char] = Array('\r', '\n', '.', '\r', '\n')
 
 	def send(msg: SMTPEvent): Unit = {
 		msg match {
@@ -54,7 +54,7 @@ class SMTPClientSession(clientSocket: Socket, sessionId: SessionID) extends Acto
 			case SMTPClientDataBegin => writeln(SMTPCommand.data)
 			case SMTPClientDataEnd(messageBody) =>
 				write(messageBody)
-				writeln(trailingDot)
+				write(trailingDot)
 			case SMTPClientStartTLS => writeln(SMTPCommand.startTLS)
 			case SMTPClientQuit => writeln(SMTPCommand.quit)
 			case SMTPClientReset => writeln(SMTPCommand.reset)
@@ -281,6 +281,8 @@ class SMTPClientSession(clientSocket: Socket, sessionId: SessionID) extends Acto
 		* @param flush output buffer flush required?
 		*/
 	protected def write(msg: Array[Char], flush: Boolean = true): Unit = {
+		logger.debug("Writing: {}", msg.map(_.toInt).map(c => String.format("%02x", c: Integer)).mkString(" "))
+
 		writer.write(msg)
 
 		if (flush) {
