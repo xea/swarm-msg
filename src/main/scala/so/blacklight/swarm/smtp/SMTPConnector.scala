@@ -5,7 +5,7 @@ import java.net.Socket
 import akka.actor.{Actor, ActorRef, Props}
 import akka.event.Logging
 import so.blacklight.swarm.mail.Email
-import so.blacklight.swarm.smtp.policy.PolicyEngine
+import so.blacklight.swarm.smtp.policy.{PolicyEngine, ProcessEmail}
 
 import scala.util.Random
 
@@ -38,7 +38,7 @@ class SMTPConnector extends Actor {
 
 		val policyEngine = context.actorOf(PolicyEngine.props(), "policyEngine-%s".format(Random.nextLong()))
 
-		policyEngine ! email
+		policyEngine ! ProcessEmail(email)
 	}
 
 	def processQuit(): Unit = {

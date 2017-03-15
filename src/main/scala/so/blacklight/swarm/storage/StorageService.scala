@@ -16,7 +16,7 @@ import scala.collection.mutable
 	* instead. This solution, however fast it may be, is suboptimal and shall be replaced with one that is capable of
 	* actual persistence
 	*/
-class ObjectStorage extends Actor {
+class StorageService extends Actor {
 
 	// Objects are kept in a memory backed mutable hash map.
 	private val memoryStorage = new mutable.HashMap[StorageId, Any]()
