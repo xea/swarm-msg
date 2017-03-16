@@ -12,6 +12,8 @@ class PolicyEngine extends Actor {
 				state match {
 					case ActionPass(email) =>
 						currentPolicy.processEmail(email)
+					case terminalAction =>
+						terminalAction
 				}
 			})
 	}
@@ -30,8 +32,6 @@ trait EmailPolicy {
 	def processEmail(email: Email): ActionResult
 }
 
-sealed trait WorkflowStep
-final case class SingleStep(step: EmailAction) extends WorkflowStep
 
 sealed trait ActionResult
 final case class ActionPass(emailResult: Email) extends ActionResult
