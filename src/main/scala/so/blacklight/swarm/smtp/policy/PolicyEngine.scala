@@ -4,99 +4,67 @@ import akka.actor.{Actor, ActorRef, Props}
 import akka.event.Logging
 import so.blacklight.swarm.mail.Email
 
-class PolicyEngine extends Actor {
-
-	override def receive: Receive = {
-		case ProcessEmail(email) =>
-			getPolicies(email).foldLeft[ActionResult](ActionPass(email))((state, currentPolicy) => {
-				state match {
-					case ActionPass(email) =>
-						currentPolicy.processEmail(email)
-					case terminalAction =>
-						terminalAction
-				}
-			})
-	}
-
-	private def getPolicies(email: Email): Seq[EmailPolicy] = {
-		List()
-	}
-
-	private def applyPolicy(email: Email, policy: EmailAction): ActionResult = {
-		ActionPass(email)
-	}
-
-}
-
-trait EmailPolicy {
-	def processEmail(email: Email): ActionResult
-}
-
-
-sealed trait ActionResult
-final case class ActionPass(emailResult: Email) extends ActionResult
-final case class ActionReject(reason: String) extends ActionResult
-
-sealed trait PolicyEvent
-
-final case class ProcessEmail(email: Email)
-
 /**
 	*
 	*/
-class PolicyEngine2 extends Actor {
+class PolicyEngine extends Actor {
 
 	val logger = Logging(context.system, this)
 
 	override def receive: Receive = {
-		case inputMessage: Email =>
-			processPolicies(inputMessage, determinePolicies(inputMessage))
-
-		case ActionError(error) =>
-			logger.warning(s"An error occurred during action evaluation: $error")
-		// TODO implement a process validation mechanism
-
-		case ActionApplied(_) => logger.info("Policy applied successfully")
+		case ProcessEmail(email) =>
+			processEmail(email)
+		case AsyncResult(result) =>
+			updateAsyncResult(result)
 	}
 
-	private def processPolicies(message: Email, policies: Seq[Either[ActorRef, EmailAction]]): Unit = {
-		policies.foldLeft[Either[String, Email]](Right(message))((result, policy) =>
-			result match {
-
-				case Right(message) =>
-					policy match {
-						// Asynchronous policies are expected to be actors
-						case Left(actorRef) =>
-							actorRef ! ApplyAction(message)
-							Right(message)
-
-						// Regular (synchronous) policies are evaluated in-line
-						case Right(syncPolicy) =>
-							syncPolicy.processEmail(message)
-					}
-
-				case error => error
-			})
+	def getPolicies(): Seq[Policy] = {
+		List()
 	}
 
-	def determinePolicies(email: Email): Seq[Either[ActorRef, EmailAction]] = {
-		List(
-			Left(
-				context.actorOf(Props(new SMTPDelivery()))))
+	private def processEmail(email: Email): Unit = {
+		// Step 1. iterate over the list of policies and do inline changes as necessary
+
+		// Step 2. iterate over the generated effects and apply them
+	}
+
+	private def updateAsyncResult(result: PolicyResult): Unit = {
+
 	}
 }
 
+/**
+	* Encapsulates an otherwise synchronous policy
+	* @param policy
+	*/
+class AsyncExecutor(policy: Policy, ref: ActorRef) extends Actor {
+
+	override def receive: Receive = {
+		case ProcessEmail(email) =>
+			processAsync(email)
+		case routedMessage =>
+			ref ! routedMessage
+	}
+
+	def processAsync(email: Email): Unit = {
+	}
+}
+
+/**
+	* Represents the result of an asynchronous policy execution. Typically sent by an
+	* AsyncExecutor to a PolicyEngine
+	*
+	* @param result the result of policy evaluation
+	*/
+final case class AsyncResult(result: PolicyResult)
+
+/**
+	* Offers helper functionality to ease creation of PolicyEngine instances
+	*/
 object PolicyEngine {
 
 	def props(): Props = {
 		Props(new PolicyEngine)
 	}
+
 }
-
-// A request to apply an action to an email
-case class ApplyAction(email: Email)
-// Describes the result of an action applied to the message
-case class ActionApplied(email: Email)
-// Describes an error happening during the execution of an action
-case class ActionError(error: String)
-
