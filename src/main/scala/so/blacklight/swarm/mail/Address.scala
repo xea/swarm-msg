@@ -13,7 +13,7 @@ class Address private (address: String) {
 
 	def toEmailAddress(): String = s"<$address>"
 
-	override def toString: String = s"Address($address)@${hashCode()}"
+	override def toString: String = s"Address($address)"
 }
 
 object Address {

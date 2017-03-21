@@ -9,54 +9,46 @@ import so.blacklight.swarm.mail.Email
 	*/
 class PolicyEngine extends Actor {
 
+	import context._
+
 	val logger = Logging(context.system, this)
 
 	override def receive: Receive = {
 		case ProcessEmail(email) =>
-			processEmail(email)
-		case AsyncResult(result) =>
-			updateAsyncResult(result)
-	}
+			become(processPolicies(getPolicies()), false)
 
-	def getPolicies(): Seq[Policy] = {
-		List()
-	}
-
-	private def processEmail(email: Email): Unit = {
-		// Step 1. iterate over the list of policies and do inline changes as necessary
-
-		// Step 2. iterate over the generated effects and apply them
-	}
-
-	private def updateAsyncResult(result: PolicyResult): Unit = {
+			self ! ProcessEmail(email)
 
 	}
-}
 
-/**
-	* Encapsulates an otherwise synchronous policy
-	* @param policy
-	*/
-class AsyncExecutor(policy: Policy, ref: ActorRef) extends Actor {
-
-	override def receive: Receive = {
+	def processPolicies(policies: Stream[Props]): PartialFunction[Any, Unit] = {
 		case ProcessEmail(email) =>
-			processAsync(email)
-		case routedMessage =>
-			ref ! routedMessage
+			policies match {
+				case firstPolicy #:: remainingPolicies =>
+					context.actorOf(firstPolicy) ! ProcessEmail(email)
+
+					become(processPolicies(remainingPolicies), false)
+
+				case _ =>
+					// Processing has finished, do something
+					unbecome()
+			}
+
+		case PolicyPass(email) =>
+			become(processPolicies(policies.tail), true)
+
+			self ! ProcessEmail(email)
+
+		case _ =>
+			unbecome()
 	}
 
-	def processAsync(email: Email): Unit = {
+	def getPolicies(): Stream[Props] = {
+		Stream(
+			SMTPDelivery.props(DeliveryConfig("localhost", 5025, false))
+		)
 	}
 }
-
-/**
-	* Represents the result of an asynchronous policy execution. Typically sent by an
-	* AsyncExecutor to a PolicyEngine
-	*
-	* @param result the result of policy evaluation
-	*/
-final case class AsyncResult(result: PolicyResult)
 
 /**
 	* Offers helper functionality to ease creation of PolicyEngine instances

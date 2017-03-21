@@ -17,6 +17,7 @@ class SMTPService extends Actor {
   // TODO assign port numbers from configuration
   val smtpListener: ActorRef = context.actorOf(SMTPListener.props(SMTPConfig(1025, false)), "smtp-listener")
   val smtpSSLListener: ActorRef = context.actorOf(SMTPListener.props(SMTPConfig(1465, true)), "smtp-ssl-listener")
+  val smtpDeliveryService: ActorRef = context.actorOf(SMTPDeliveryService.props, "smtp-delivery")
 
   /**
     * Reminder of routing logics:
@@ -48,6 +49,7 @@ class SMTPService extends Actor {
   def startService() = {
     (smtpListener ! AcceptConnections)(smtpRouter)
     (smtpSSLListener ! AcceptConnections)(smtpRouter)
+    smtpDeliveryService ! StartService
   }
 
   def handleWorkerTermination(worker: ActorRef): Unit = {

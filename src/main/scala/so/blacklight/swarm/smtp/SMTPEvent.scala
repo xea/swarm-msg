@@ -108,6 +108,7 @@ case object SMTPServerUnknownCommand extends SMTPServerEvent
 	* @param email the complete e-mail
 	*/
 case class ReceivedMessage(email: Email) extends SMTPServerEvent
+case class DeliverMessage(email: Email) extends SMTPClientEvent
 case object InitTransaction extends SMTPClientEvent
 
 class ClientError extends SMTPClientEvent

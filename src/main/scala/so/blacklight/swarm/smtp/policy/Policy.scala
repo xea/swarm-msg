@@ -10,6 +10,3 @@ sealed trait Policy {
 	def process(email: Email): PolicyResult
 }
 
-final case class DeliverMessage(config: DeliveryConfig) extends Policy {
-	override def process(email: Email): PolicyResult = PolicyPass(email)
-}
