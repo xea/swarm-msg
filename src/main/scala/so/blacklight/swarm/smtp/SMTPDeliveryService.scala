@@ -15,6 +15,8 @@ class SMTPDeliveryService extends Actor {
 	}
 
 	override def receive: Receive = {
+		case DeliverMessage(email) =>
+			logger.info("Begin message delivery")
 		case _ => ()
 	}
 }
@@ -22,3 +24,5 @@ class SMTPDeliveryService extends Actor {
 object SMTPDeliveryService {
 	def props: Props = Props(new SMTPDeliveryService)
 }
+
+case class DeliveryConfig(remoteHost: String, remotePort: Int, forceTLS: Boolean)

@@ -1,13 +1,13 @@
 package so.blacklight.swarm.smtp
 
-import java.net.{InetSocketAddress, ServerSocket, Socket}
+import java.net.{InetSocketAddress, ServerSocket}
 import java.security.SecureRandom
 import javax.net.ServerSocketFactory
 import javax.net.ssl.{SSLContext, SSLServerSocket}
 
 import akka.actor.{Actor, ActorRef, Props}
 import akka.event.Logging
-import so.blacklight.swarm.mail.Email
+import so.blacklight.swarm.control.StartService
 import so.blacklight.swarm.net.tls.PermissiveTrustManager
 import so.blacklight.swarm.stats.IncrementCounter
 
@@ -44,7 +44,7 @@ class SMTPListener(config: SMTPConfig) extends Actor {
   }
 
   override def receive: Receive = {
-		case AcceptConnections => {
+		case StartService =>
 			dispatcher = Some(sender())
 
 			listenSocket.foreach(socket => {
@@ -60,7 +60,6 @@ class SMTPListener(config: SMTPConfig) extends Actor {
 						dp ! ClientConnected(clientSocket)
 					}))
 			})
-		}
 		case ClientQuit => logger.info("Client disconnected")
     case _ => logger.warning("SMTPListener has received an unknown message")
   }
@@ -107,8 +106,3 @@ object SMTPListener {
 
 }
 
-case object AcceptConnections
-case class ClientConnected(remote: Socket)
-case class DeliverMessage(remote: Socket, message: Email)
-case class DeliverMessages(remote: Socket, messages: Stream[Email])
-case object ClientQuit

@@ -2,7 +2,7 @@ package so.blacklight.swarm.smtp.policy
 
 import akka.actor.{Actor, ActorRef, Props}
 import akka.event.Logging
-import so.blacklight.swarm.mail.Email
+import so.blacklight.swarm.smtp.DeliveryConfig
 
 /**
 	*
@@ -15,10 +15,22 @@ class PolicyEngine extends Actor {
 
 	override def receive: Receive = {
 		case ProcessEmail(email) =>
+			become(initProcessing(sender()), false)
+
+			self ! ProcessEmail(email)
+	}
+
+	def initProcessing(sender: ActorRef): PartialFunction[Any, Unit] = {
+		case ProcessEmail(email) =>
 			become(processPolicies(getPolicies()), false)
 
 			self ! ProcessEmail(email)
 
+		case result: PolicyResult => {
+			unbecome()
+
+			sender ! result
+		}
 	}
 
 	def processPolicies(policies: Stream[Props]): PartialFunction[Any, Unit] = {
@@ -27,7 +39,7 @@ class PolicyEngine extends Actor {
 				case firstPolicy #:: remainingPolicies =>
 					context.actorOf(firstPolicy) ! ProcessEmail(email)
 
-					become(processPolicies(remainingPolicies), false)
+					become(processPolicies(remainingPolicies), true)
 
 				case _ =>
 					// Processing has finished, do something
@@ -38,6 +50,11 @@ class PolicyEngine extends Actor {
 			become(processPolicies(policies.tail), true)
 
 			self ! ProcessEmail(email)
+
+		case PolicyReject(reason) =>
+			unbecome()
+
+			self ! PolicyReject(reason)
 
 		case _ =>
 			unbecome()

@@ -4,7 +4,7 @@ import java.net.Socket
 
 import akka.actor.ActorSystem
 import so.blacklight.swarm.mail.{Email, Envelope}
-import so.blacklight.swarm.smtp.{DeliverMessage, DeliverMessages, SMTPConnector}
+import so.blacklight.swarm.smtp.SMTPConnector
 
 /**
 	*
@@ -24,7 +24,7 @@ object SwarmClientTest extends App {
 				val socket = new Socket("localhost", 5025)
 				val connector = system.actorOf(SMTPConnector.props())
 
-				connector ! DeliverMessages(socket, Stream(email, email, email))
+				//connector ! DeliverMessages(socket, Stream(email, email, email))
 				//connector ! DeliverMessages(socket, Stream.continually(() => email).map(_()))
 			case _ => ()
 		}

@@ -1,5 +1,7 @@
 package so.blacklight.swarm.smtp
 
+import java.net.Socket
+
 import so.blacklight.swarm.mail.Email
 
 /**
@@ -109,7 +111,10 @@ case object SMTPServerUnknownCommand extends SMTPServerEvent
 	*/
 case class ReceivedMessage(email: Email) extends SMTPServerEvent
 case class DeliverMessage(email: Email) extends SMTPClientEvent
+//case class DeliverMessages(remote: Socket, messages: Stream[Email])
 case object InitTransaction extends SMTPClientEvent
 
 class ClientError extends SMTPClientEvent
+case class ClientConnected(remote: Socket) extends SMTPClientEvent
 case object ClientDisconnected extends ClientError
+case object ClientQuit extends SMTPClientEvent

@@ -2,7 +2,7 @@ package so.blacklight.swarm.smtp.policy
 
 import akka.actor.{Actor, ActorRef, Props}
 import so.blacklight.swarm.mail.Email
-import so.blacklight.swarm.smtp.DeliverMessage
+import so.blacklight.swarm.smtp.{DeliverMessage, DeliveryConfig}
 
 /**
 	*
@@ -34,4 +34,3 @@ object SMTPDelivery {
 	def props(config: DeliveryConfig): Props = Props(new SMTPDelivery(config))
 }
 
-case class DeliveryConfig(remoteHost: String, remotePort: Int, forceTLS: Boolean)

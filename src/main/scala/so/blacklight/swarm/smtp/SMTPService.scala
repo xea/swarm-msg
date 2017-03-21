@@ -47,8 +47,8 @@ class SMTPService extends Actor {
   }
 
   def startService() = {
-    (smtpListener ! AcceptConnections)(smtpRouter)
-    (smtpSSLListener ! AcceptConnections)(smtpRouter)
+    (smtpListener ! StartService)(smtpRouter)
+    (smtpSSLListener ! StartService)(smtpRouter)
     smtpDeliveryService ! StartService
   }
 
