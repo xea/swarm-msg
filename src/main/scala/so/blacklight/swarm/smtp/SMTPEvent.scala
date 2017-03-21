@@ -111,6 +111,7 @@ case object SMTPServerUnknownCommand extends SMTPServerEvent
 	*/
 case class ReceivedMessage(email: Email) extends SMTPServerEvent
 case class DeliverMessage(email: Email) extends SMTPClientEvent
+case class DeliverMessageStream(email: Stream[Email]) extends SMTPClientEvent
 //case class DeliverMessages(remote: Socket, messages: Stream[Email])
 case object InitTransaction extends SMTPClientEvent
 
