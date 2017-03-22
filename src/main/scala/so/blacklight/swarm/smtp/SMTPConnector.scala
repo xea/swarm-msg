@@ -24,8 +24,6 @@ class SMTPConnector extends Actor {
   }
 
   def processConnection(clientSocket: Socket): Unit = {
-    logger.info(s"Processing connection from ${clientSocket.getRemoteSocketAddress.toString}")
-
 		val session = initSession(clientSocket)
 		val protocolHandler = context.actorOf(SMTPServerProtocol.props(session, self))
 
@@ -35,9 +33,9 @@ class SMTPConnector extends Actor {
 	def processPolicies(email: Email): Unit = {
 		logger.info("Transaction finished, processing message")
 
-		val policyEngine = context.actorOf(PolicyEngine.props(), "policyEngine-%s".format(Random.nextLong()))
+		//val policyEngine = context.actorOf(PolicyEngine.props(), "policyEngine-%s".format(Random.nextLong()))
 
-		policyEngine ! ProcessEmail(email)
+		//policyEngine ! ProcessEmail(email)
 	}
 
 	def processQuit(): Unit = {

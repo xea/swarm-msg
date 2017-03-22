@@ -5,6 +5,8 @@ class Email private (envelope: Envelope, body: String) {
 	def getEnvelope(): Envelope = envelope
 
 	def getBody(): Array[Char] = body.toCharArray
+
+	def isLoopback(): Boolean = true
 }
 
 object Email {

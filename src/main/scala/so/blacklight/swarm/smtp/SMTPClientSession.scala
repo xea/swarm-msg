@@ -47,15 +47,19 @@ class SMTPClientSession(clientSocket: Socket, sessionId: SessionID) extends Acto
 		* @param msg SMTP event to send
 		*/
 	def send(msg: SMTPEvent): Unit = {
-		msg match {
-			case clientMsg: SMTPClientEvent =>
-				sendClientEvent(clientMsg)
+		try {
+			msg match {
+				case clientMsg: SMTPClientEvent =>
+					sendClientEvent(clientMsg)
 
-			case serverMsg: SMTPServerEvent =>
-				sendServerEvent(serverMsg)
+				case serverMsg: SMTPServerEvent =>
+					sendServerEvent(serverMsg)
 
-			case unknownEvent =>
-				logger.warning(s"Can't send non-SMTP events over an SMTP connection: $unknownEvent")
+				case unknownEvent =>
+					logger.warning(s"Can't send non-SMTP events over an SMTP connection: $unknownEvent")
+			}
+		} catch {
+			case ex: Exception => logger.error("Caught exception: " + ex.getMessage)
 		}
 	}
 
@@ -173,7 +177,7 @@ class SMTPClientSession(clientSocket: Socket, sessionId: SessionID) extends Acto
 		* @return client's message
 		*/
 	def readReply(): SMTPClientEvent = {
-		val line = reader.readLine.trim
+		val line = readSingleLine
 
 		line match {
 			case SMTPPattern.ehlo(hostId) => SMTPClientEhlo(hostId)
@@ -234,7 +238,7 @@ class SMTPClientSession(clientSocket: Socket, sessionId: SessionID) extends Acto
 
 	@tailrec
 	private def readMultilineServerReply(lines: List[String]): Option[List[String]] = {
-		val line = reader.readLine.trim
+		val line = readSingleLine
 
 		val isTerminator = "^([0-9]{3})(\\s*$|\\s+)".r.findPrefixOf(line)
 		val isMultiline = "^([0-9]{3})-".r.findPrefixOf(line)
@@ -246,6 +250,12 @@ class SMTPClientSession(clientSocket: Socket, sessionId: SessionID) extends Acto
 		} else {
 			None
 		}
+	}
+
+	private def readSingleLine: String = {
+		val line = reader.readLine.trim
+		logger.debug(s"Read line: $line")
+		line
 	}
 
 	/**
@@ -336,7 +346,8 @@ class SMTPClientSession(clientSocket: Socket, sessionId: SessionID) extends Acto
 		* @param flush output buffer flush required?
 		*/
 	protected def write(msg: Array[Char], flush: Boolean = true): Unit = {
-		logger.debug("Writing: {}", msg.map(_.toInt).map(c => String.format("%02x", c: Integer)).mkString(" "))
+		//logger.debug("Writing: {}", msg.map(_.toInt).map(c => String.format("%02x", c: Integer)).mkString(" "))
+		logger.debug("Writing: {}", msg.mkString)
 
 		writer.write(msg)
 

@@ -18,6 +18,8 @@ class PolicyEngine extends Actor {
 			become(initProcessing(sender()), false)
 
 			self ! ProcessEmail(email)
+		case _ =>
+			logger.debug("MEH")
 	}
 
 	def initProcessing(sender: ActorRef): PartialFunction[Any, Unit] = {
@@ -29,12 +31,15 @@ class PolicyEngine extends Actor {
 		case result: PolicyResult => {
 			unbecome()
 
+			logger.debug("Ide eljut azert?")
+
 			sender ! result
 		}
 	}
 
 	def processPolicies(policies: Stream[Props]): PartialFunction[Any, Unit] = {
 		case ProcessEmail(email) =>
+			logger.debug(s"Processing ${policies.length} remaining policies")
 			policies match {
 				case firstPolicy #:: remainingPolicies =>
 					context.actorOf(firstPolicy) ! ProcessEmail(email)
@@ -43,6 +48,7 @@ class PolicyEngine extends Actor {
 
 				case _ =>
 					// Processing has finished, do something
+					logger.debug("Hit end of policy stream")
 					unbecome()
 			}
 
@@ -57,12 +63,14 @@ class PolicyEngine extends Actor {
 			self ! PolicyReject(reason)
 
 		case _ =>
+			logger.debug("WTF")
 			unbecome()
 	}
 
 	def getPolicies(): Stream[Props] = {
 		Stream(
-			SMTPDelivery.props(DeliveryConfig("localhost", 5025, false))
+			//Props(new IgnoreLoopback),
+			//SMTPDelivery.props(DeliveryConfig("localhost", 5025, false))
 		)
 	}
 }

@@ -11,7 +11,7 @@ class Address private (address: String) {
 		*/
 	def isNullAddress(): Boolean = Address.NULL.equals(address)
 
-	def toEmailAddress(): String = s"<$address>"
+	def toEmailAddress(): String = s"$address"
 
 	override def toString: String = s"Address($address)"
 }

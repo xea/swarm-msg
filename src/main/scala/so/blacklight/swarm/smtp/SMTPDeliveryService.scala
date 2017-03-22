@@ -48,7 +48,7 @@ class SMTPDeliverySession extends Actor {
 
 	private def deliverStream(messageStream: Stream[Email]): Unit = {
 		try {
-			val socket = new Socket("localhost", 1025)
+			val socket = new Socket("localhost", 2025)
 
 			val clientSession = context.actorOf(SMTPClientSession.props(socket, SessionID()))
 			val clientProtocol = context.actorOf(SMTPClientProtocol.props(clientSession, self, messageStream))
