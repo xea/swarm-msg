@@ -9,7 +9,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import so.blacklight.swarm.control.{StartService, StopService}
 import so.blacklight.swarm.http.json.JSONTransformer
-import so.blacklight.swarm.mail.Email
+import so.blacklight.swarm.mail_old.Email
 import so.blacklight.swarm.stats.{BatchCounterValue, CounterValue, GetCounterValue}
 import so.blacklight.swarm.storage.{EntityList, ListEntities, StorageId}
 import spark.Spark.{get, staticFiles, stop}

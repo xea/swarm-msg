@@ -1,6 +1,6 @@
 package so.blacklight.swarm.smtp.policy
 
-import so.blacklight.swarm.mail.Email
+import so.blacklight.swarm.mail_old.Email
 
 /**
 	* Base trait for events that are used to control the policy evaluation flow

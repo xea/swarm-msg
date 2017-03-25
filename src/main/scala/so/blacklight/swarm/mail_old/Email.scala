@@ -1,4 +1,4 @@
-package so.blacklight.swarm.mail
+package so.blacklight.swarm.mail_old
 
 class Email private (envelope: Envelope, body: String) {
 

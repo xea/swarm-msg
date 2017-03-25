@@ -1,4 +1,4 @@
-package so.blacklight.swarm.mail
+package so.blacklight.swarm.mail_old
 
 class Envelope(from: Address, to: List[Address]) {
 

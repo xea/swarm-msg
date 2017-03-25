@@ -1,6 +1,6 @@
 package so.blacklight.swarm.smtp.policy
 
-import so.blacklight.swarm.mail.Email
+import so.blacklight.swarm.mail_old.Email
 
 /**
 	* Policies implement rules or transformations that are run against a message and may alter either

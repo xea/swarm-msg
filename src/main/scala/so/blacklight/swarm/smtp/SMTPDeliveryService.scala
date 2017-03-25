@@ -4,7 +4,7 @@ import java.net.Socket
 
 import akka.actor.{Actor, Props}
 import akka.event.Logging
-import so.blacklight.swarm.mail.Email
+import so.blacklight.swarm.mail_old.Email
 
 /**
 	*

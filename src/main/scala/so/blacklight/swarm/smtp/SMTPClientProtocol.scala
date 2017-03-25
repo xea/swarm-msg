@@ -2,7 +2,7 @@ package so.blacklight.swarm.smtp
 
 import akka.actor.{Actor, ActorRef, Props}
 import akka.event.Logging
-import so.blacklight.swarm.mail.{Address, Email}
+import so.blacklight.swarm.mail_old.{Address, Email}
 
 /**
 	*

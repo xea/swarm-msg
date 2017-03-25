@@ -2,7 +2,7 @@ package so.blacklight.swarm.smtp
 
 import java.net.Socket
 
-import so.blacklight.swarm.mail.Email
+import so.blacklight.swarm.mail_old.Email
 
 /**
 	* Marker trait for events generated during an SMTP transmission either on the client's or on server's side

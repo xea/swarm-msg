@@ -1,5 +1,7 @@
 package so.blacklight.swarm
 
+import so.blacklight.swarm.mail.EmailAddress
+
 /**
 	*
 	*/
@@ -10,11 +12,17 @@ class StreamTest {
 
 object StreamTest extends App {
 
+	val address = EmailAddress("valami@domain.hu")
+
+	println(address)
+
+	/*
 	Stream(1) match {
 		case a #:: b #:: c => println("Three")
 		case a #:: b => println("Two")
 		case a => println("One")
 	}
+	*/
 
 	/*
 	var i = 0

@@ -1,7 +1,7 @@
 package so.blacklight.swarm.smtp.policy
 
 import akka.actor.{Actor, ActorRef, Props}
-import so.blacklight.swarm.mail.Email
+import so.blacklight.swarm.mail_old.Email
 import so.blacklight.swarm.smtp.{DeliverMessage, DeliveryConfig}
 
 /**

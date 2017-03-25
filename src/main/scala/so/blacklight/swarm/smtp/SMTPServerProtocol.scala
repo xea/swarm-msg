@@ -2,7 +2,7 @@ package so.blacklight.swarm.smtp
 
 import akka.actor.{Actor, ActorRef, Props}
 import akka.event.Logging
-import so.blacklight.swarm.mail.{Address, Email, Envelope}
+import so.blacklight.swarm.mail_old.{Address, Email, Envelope}
 
 /**
 	* Impelments the SMTP protocol by supervising the lower level client session and deciding
