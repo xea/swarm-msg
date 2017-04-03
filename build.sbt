@@ -14,6 +14,7 @@ libraryDependencies ++= Seq(
 	"com.google.code.gson" % "gson" % "2.8.0",
 	"org.apache.logging.log4j" % "log4j-api" % "2.7",
 	"org.apache.logging.log4j" % "log4j-core" % "2.7",
-	"org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.7"
+	"org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.7",
+	"org.scalatest" % "scalatest_2.12" % "3.0.1" % "test"
 )
 

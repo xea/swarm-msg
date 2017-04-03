@@ -1,4 +1,4 @@
-package so.blacklight.swarm.smtp
+package so.blacklight.swarm.smtp_old
 
 import akka.actor.{Actor, ActorRef, Props}
 import akka.event.Logging

@@ -1,4 +1,4 @@
-package so.blacklight.swarm.smtp
+package so.blacklight.swarm.smtp_old
 
 import java.net.{InetSocketAddress, ServerSocket}
 import java.security.SecureRandom

@@ -4,7 +4,7 @@ import java.net.Socket
 
 import akka.actor.ActorSystem
 import so.blacklight.swarm.mail_old.{Email, Envelope}
-import so.blacklight.swarm.smtp.SMTPConnector
+import so.blacklight.swarm.smtp_old.SMTPConnector
 
 /**
 	*

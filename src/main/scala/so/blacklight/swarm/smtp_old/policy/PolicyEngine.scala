@@ -1,8 +1,8 @@
-package so.blacklight.swarm.smtp.policy
+package so.blacklight.swarm.smtp_old.policy
 
 import akka.actor.{Actor, ActorRef, Props}
 import akka.event.Logging
-import so.blacklight.swarm.smtp.DeliveryConfig
+import so.blacklight.swarm.smtp_old.DeliveryConfig
 
 /**
 	*

@@ -1,11 +1,11 @@
-package so.blacklight.swarm.smtp
+package so.blacklight.swarm.smtp_old
 
 import java.net.Socket
 
 import akka.actor.{Actor, ActorRef, Props}
 import akka.event.Logging
 import so.blacklight.swarm.mail_old.Email
-import so.blacklight.swarm.smtp.policy.{PolicyEngine, ProcessEmail}
+import so.blacklight.swarm.smtp_old.policy.{PolicyEngine, ProcessEmail}
 
 import scala.util.Random
 

@@ -1,4 +1,4 @@
-package so.blacklight.swarm.smtp.policy
+package so.blacklight.swarm.smtp_old.policy
 
 import so.blacklight.swarm.mail_old.Email
 

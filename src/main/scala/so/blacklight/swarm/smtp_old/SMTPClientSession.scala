@@ -1,4 +1,4 @@
-package so.blacklight.swarm.smtp
+package so.blacklight.swarm.smtp_old
 
 import java.io._
 import java.net.Socket
