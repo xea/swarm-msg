@@ -12,8 +12,8 @@ libraryDependencies ++= Seq(
 	"com.sparkjava" % "spark-core" % "2.5.4",
 	"com.sparkjava" % "spark-template-jade" % "2.3",
 	"com.google.code.gson" % "gson" % "2.8.0",
-	"org.apache.logging.log4j" % "log4j-api" % "2.7",
-	"org.apache.logging.log4j" % "log4j-core" % "2.7",
-	"org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.7"
+	"org.apache.logging.log4j" % "log4j-api" % "2.8.1",
+	"org.apache.logging.log4j" % "log4j-core" % "2.8.1",
+	"org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.8.1"
 )
 

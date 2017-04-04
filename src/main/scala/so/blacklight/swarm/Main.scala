@@ -7,6 +7,6 @@ object Main extends App {
 
   val serverInstance = new SwarmServer
 
-  serverInstance.start
+  serverInstance.start()
 }
 
