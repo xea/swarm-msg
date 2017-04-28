@@ -1,16 +1,6 @@
 package so.blacklight.swarm
 
-import akka.actor.{ActorSystem, Inbox, PoisonPill, Props}
-/*
-import so.blacklight.swarm.account.AccountService
-import so.blacklight.swarm.control.StartService
-import so.blacklight.swarm.echo.EchoService
-import so.blacklight.swarm.http.HttpService
-import so.blacklight.swarm.smtp.SMTPService
-import so.blacklight.swarm.stats.StatService
-import so.blacklight.swarm.storage.StorageService
-*/
-
+import akka.actor.{ActorSystem, Inbox, Props}
 /**
 	* Orchestrates the collection of defined services on a swarm node.
 	*/
@@ -25,7 +15,6 @@ class SwarmServer {
 	//private val smtpService = system.actorOf(Props[SMTPService], SwarmServer.SMTP_SERVICE)
 
 	def start(): Unit = {
-
 	}
 }
 
