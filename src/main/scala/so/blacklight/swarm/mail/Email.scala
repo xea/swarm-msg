@@ -6,6 +6,8 @@ package so.blacklight.swarm.mail
 	*/
 trait Message {
 
+	def length: Int
+
 }
 
 /**
@@ -14,6 +16,8 @@ trait Message {
 	* See also: https://tools.ietf.org/html/rfc2822
 	*/
 class RFC2822Message extends Message {
+
+	def length: Int = 0
 
 }
 
@@ -28,9 +32,14 @@ case class Header(key: String, value: String)
 /**
 	* A raw message represents the exact byte stream the message was built
 	*
-	* @param lines original lines
+	* @param bytes original lines
 	*/
-class RawMessage(lines: List[String]) extends Message {
+class RawMessage(bytes: Array[Byte]) extends Message {
+
+	def length: Int = bytes.length
+}
+
+class Utf8Message(lines: List[String]) extends Message {
 
 	def length: Int = lines.foldLeft(0)(_ + _.length)
 

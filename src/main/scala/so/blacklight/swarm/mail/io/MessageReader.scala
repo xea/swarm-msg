@@ -1,7 +1,7 @@
 package so.blacklight.swarm.mail.io
 
-import java.io.{ByteArrayOutputStream, DataInputStream, InputStream}
-import java.nio.CharBuffer
+import java.io.{ByteArrayOutputStream, DataInputStream, InputStream, OutputStream}
+import java.nio.{ByteBuffer, CharBuffer}
 
 import so.blacklight.swarm.mail.{Header, Message, MimePart, RawMessage}
 
@@ -26,31 +26,70 @@ Unicode new lines:
  */
 
 class RawMessageReader extends MessageReader[RawMessage] {
+
+	private val trailingDot = Array('\r', '\n', '.', '\r', '\n')
+
 	override def fromInputStream(inputStream: InputStream): RawMessage = {
-		implicit val buffer = CharBuffer.allocate(1500)
-		implicit var lineCount = 0
+		implicit val buffer = ByteBuffer.allocate(trailingDot.length);
+		implicit val output = new ByteArrayOutputStream()
 
-		var i: Int = 0
-
-		val dis = new DataInputStream(inputStream)
-
-		val a = Stream.continually { dis.read() }
+		Stream.continually { inputStream.read() }
 			.map { _.asInstanceOf[Byte] }
 			.takeWhile { hasAvailable }
-			.map { fullBuffer }
+			.takeWhile { hasContent }
+			.foreach { output.write(_) }
 
-
-		val lines = List()
-		new RawMessage(lines)
+		new RawMessage(output.toByteArray)
 	}
 
-	private def fillBuffer(byte: Byte): Byte = {
-
-		byte
-	}
-
+	// Simple check to see if the last read byte was EOF or an actual value
 	private def hasAvailable(char: Byte): Boolean = char >= 0
 
+	// So, what happens here is that we maintain a short internal buffer to keep track of trailing
+	// dots indicating the end of message. Whenever we find a potential follow-up, we build up the
+	// buffer until we really hit the end of message or turns out to be a false positive and we clear the buffer
+	private def hasContent(char: Byte)(implicit buffer: ByteBuffer, output: OutputStream): Boolean = {
+		val bufferPos = buffer.position()
+
+		// If the current character matches the expected position and character, we increment the buffer
+		if (bufferPos < trailingDot.length - 1 && char == trailingDot(bufferPos)) {
+			buffer.put(char)
+			true
+
+		// If we hit the last character then we reject further reads
+		} else if (bufferPos == trailingDot.length - 1 && char == trailingDot.last) {
+			output.write(char)
+			buffer.clear()
+			false
+
+		// Otherwise carry on reading
+		} else {
+
+			// Clear false positives
+			if (bufferPos > 0) {
+				buffer.clear()
+			}
+
+			true
+		}
+	}
+}
+
+
+/**
+	* RawMessageReader takes an arbitrary limited byte stream, reads every byte from the
+	* stream and stores the read bytes, preserving all the bytes in their original state.
+	*/
+class RawMessageReader_ extends MessageReader[RawMessage] {
+
+	def fromInputStream(inputStream: InputStream): RawMessage = {
+		val buffer = new ByteArrayOutputStream()
+		val contents = Source.fromInputStream(inputStream).buffered.foldLeft(buffer)((acc, x) => {
+			acc.write(x)
+			acc
+		})
+		new RawMessage(Array())//(contents.toByteArray)
+	}
 	private def lookForEnd(c: Char)(implicit lineCount: Int, buffer: CharBuffer): List[Option[Char]] = {
 		if (lineCount > 0 && c == '\n' && (buffer.position() == 1 && buffer.get(0) == '.') || (buffer.position() == 2 && buffer.get(0) == '.' && buffer.get(1) == '\r')) {
 			List(Some(c), None)
@@ -78,23 +117,6 @@ class RawMessageReader extends MessageReader[RawMessage] {
 		} else {
 			lines
 		}
-	}
-}
-
-
-/**
-	* RawMessageReader takes an arbitrary limited byte stream, reads every byte from the
-	* stream and stores the read bytes, preserving all the bytes in their original state.
-	*/
-class RawMessageReader_ extends MessageReader[RawMessage] {
-
-	def fromInputStream(inputStream: InputStream): RawMessage = {
-		val buffer = new ByteArrayOutputStream()
-		val contents = Source.fromInputStream(inputStream).buffered.foldLeft(buffer)((acc, x) => {
-			acc.write(x)
-			acc
-		})
-		new RawMessage(List())//(contents.toByteArray)
 	}
 }
 

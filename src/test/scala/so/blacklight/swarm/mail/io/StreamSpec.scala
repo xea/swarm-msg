@@ -2,9 +2,7 @@ package so.blacklight.swarm.mail.io
 
 import java.io.{ByteArrayInputStream, InputStreamReader}
 
-import org.scalatest.{FlatSpec, FunSpec}
-
-import scala.io.Source
+import org.scalatest.FunSpec
 
 /**
 	*
@@ -16,7 +14,7 @@ class StreamSpec extends FunSpec {
 		val stream = new ByteArrayInputStream("1234567890qwertyuiopasdfghjklzxcvbnmm".getBytes)
 
 		val reader = new InputStreamReader(stream)
-		Source.fromInputStream(stream).takeWhile(i => i != 0).foreach(println)
+//		Source.fromInputStream(stream).takeWhile(i => i != 0).foreach(println)
 
 
 	}

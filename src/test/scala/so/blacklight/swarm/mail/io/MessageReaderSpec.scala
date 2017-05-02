@@ -49,26 +49,4 @@ class MessageReaderSpec extends FunSpec {
 			assert(message3.length == message(3).length)
 		}
 	}
-
-	describe("BufferedReader") {
-
-		it ("should do stuff") {
-			val buffer = CharBuffer.allocate(1000)
-
-			buffer.put("Alma")
-
-			assert(buffer.position() == 4)
-			assert(buffer.limit() == 1000)
-			assert(buffer.remaining() == 996)
-			assert(buffer.capacity() == 1000)
-
-			buffer.rewind()
-
-			assert(buffer.position() == 0)
-			assert(buffer.limit() == 1000)
-			assert(buffer.remaining() == 1000)
-			assert(buffer.capacity() == 1000)
-		}
-
-	}
 }
