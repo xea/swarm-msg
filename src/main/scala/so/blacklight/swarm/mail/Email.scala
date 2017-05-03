@@ -21,10 +21,31 @@ class RFC2822Message extends Message {
 
 }
 
+class MimeMessage extends RFC2822Message {
+
+}
+
 trait MimePart {
 
 	def getContentType: MediaType
 
+}
+
+trait MimeMultipart extends MimePart {
+
+}
+
+class SingleMimePart(mediaType: MediaType) extends MimePart {
+	override def getContentType: MediaType = mediaType
+}
+
+class MixedMultipart extends MimeMultipart {
+
+	override def getContentType: MediaType = MediaType.Mixed
+
+	def getParts(): Seq[MimePart] = {
+		List()
+	}
 }
 
 case class Header(key: String, value: String)

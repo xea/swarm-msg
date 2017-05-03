@@ -1,7 +1,6 @@
 package so.blacklight.swarm.mail.io
 
 import java.io.ByteArrayInputStream
-import java.nio.CharBuffer
 
 import org.scalatest.FunSpec
 
@@ -16,7 +15,7 @@ class MessageReaderSpec extends FunSpec {
 
 			val reader = new RawMessageReader
 
-			val message = reader.fromInputStream(input)
+			val message = reader.from(input)
 
 			assert(message.length == 0)
 		}
@@ -27,7 +26,7 @@ class MessageReaderSpec extends FunSpec {
 			val data = s"$realMessage$extraMessage"
 			val input = new ByteArrayInputStream(data.getBytes)
 			val reader = new RawMessageReader
-			val message = reader.fromInputStream(input)
+			val message = reader.from(input)
 
 			assert(message.length == realMessage.length)
 		}
@@ -38,10 +37,10 @@ class MessageReaderSpec extends FunSpec {
 			val data = s"${message(0)}${message(1)}${message(2)}${message(3)}"
 			val input = new ByteArrayInputStream(data.getBytes())
 			val reader = new RawMessageReader
-			val message0 = reader.fromInputStream(input)
-			val message1 = reader.fromInputStream(input)
-			val message2 = reader.fromInputStream(input)
-			val message3 = reader.fromInputStream(input)
+			val message0 = reader.from(input)
+			val message1 = reader.from(input)
+			val message2 = reader.from(input)
+			val message3 = reader.from(input)
 
 			assert(message0.length == message(0).length)
 			assert(message1.length == message(1).length)

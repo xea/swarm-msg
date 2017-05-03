@@ -1,15 +1,23 @@
 package so.blacklight.swarm.mail.io
 
-import java.io.{ByteArrayOutputStream, DataInputStream, InputStream, OutputStream}
-import java.nio.{ByteBuffer, CharBuffer}
+import java.io.{ByteArrayOutputStream, InputStream, OutputStream, PushbackInputStream}
+import java.nio.ByteBuffer
+import java.nio.channels.{Channels, ReadableByteChannel, WritableByteChannel}
 
-import so.blacklight.swarm.mail.{Header, Message, MimePart, RawMessage}
+import so.blacklight.swarm.mail._
 
-import scala.io.Source
+import scala.util.{Failure, Success, Try}
 
-trait MessageReader[+T <: Message] {
+trait MessageReader[+T <: Message, -I] {
 
-	def fromInputStream(inputStream: InputStream): T
+	// TODO refine return type to something like Either[T, ReaderError]
+	/**
+		* Attempt to read and parse a message from input and convert it to an instance of T
+		*
+		* @param input data source
+		* @return parsed message
+		*/
+	def from(input: I): T
 
 }
 
@@ -25,21 +33,22 @@ Unicode new lines:
  PS:    Paragraph Separator, U+2029
  */
 
-class RawMessageReader extends MessageReader[RawMessage] {
+class RawMessageReader extends MessageReader[RawMessage, InputStream] {
 
 	private val trailingDot = Array('\r', '\n', '.', '\r', '\n')
 
-	override def fromInputStream(inputStream: InputStream): RawMessage = {
+	override def from(input: InputStream): RawMessage = {
 		implicit val buffer = ByteBuffer.allocate(trailingDot.length);
 		implicit val output = new ByteArrayOutputStream()
 
-		Stream.continually { inputStream.read() }
+		Try(Stream.continually { input.read() }
 			.map { _.asInstanceOf[Byte] }
 			.takeWhile { hasAvailable }
 			.takeWhile { hasContent }
-			.foreach { output.write(_) }
-
-		new RawMessage(output.toByteArray)
+			.foreach { output.write(_) }) match {
+			case Success(_) => new RawMessage(output.toByteArray)
+			case Failure(e) => new RawMessage(Array[Byte]())
+		}
 	}
 
 	// Simple check to see if the last read byte was EOF or an actual value
@@ -75,11 +84,31 @@ class RawMessageReader extends MessageReader[RawMessage] {
 	}
 }
 
+class MimeMessageReader extends MessageReader[MimeMessage, PushbackInputStream] {
 
-/**
-	* RawMessageReader takes an arbitrary limited byte stream, reads every byte from the
-	* stream and stores the read bytes, preserving all the bytes in their original state.
-	*/
+	override def from(input: PushbackInputStream): MimeMessage = {
+		val DEFAULT_BUFFER_SIZE: Int = 1500
+
+		implicit val readBuffer = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE)
+		val channel = Channels.newChannel(input)
+
+		Stream.continually { fillBuffer(channel) }
+
+		new MimeMessage
+	}
+
+	private def fillBuffer(channel: ReadableByteChannel)(implicit readBuffer: ByteBuffer): Option[ByteBuffer] = {
+		if (readBuffer.hasRemaining()) {
+			channel.read(readBuffer)
+			Some(readBuffer)
+		} else {
+			None
+		}
+	}
+
+}
+
+/*
 class RawMessageReader_ extends MessageReader[RawMessage] {
 
 	def fromInputStream(inputStream: InputStream): RawMessage = {
@@ -134,6 +163,7 @@ class ComposingMimePartReader[T <: MimePart] extends MimePartReader[T] {
 	}
 
 }
+*/
 
 sealed trait ParseError
 case object GenericError extends ParseError
