@@ -2,9 +2,10 @@ package so.blacklight.swarm.mail.io
 
 import java.io.{ByteArrayOutputStream, InputStream, OutputStream, PushbackInputStream}
 import java.nio.ByteBuffer
-import java.nio.channels.{Channels, ReadableByteChannel, WritableByteChannel}
+import java.nio.channels.{Channels, ReadableByteChannel}
 
 import so.blacklight.swarm.mail._
+import so.blacklight.swarm.mail.mime.MimeMessage
 
 import scala.util.{Failure, Success, Try}
 
@@ -17,7 +18,7 @@ trait MessageReader[+T <: Message, -I] {
 		* @param input data source
 		* @return parsed message
 		*/
-	def from(input: I): T
+	def from(input: I): Either[ReaderError, T]
 
 }
 
@@ -37,7 +38,7 @@ class RawMessageReader extends MessageReader[RawMessage, InputStream] {
 
 	private val trailingDot = Array('\r', '\n', '.', '\r', '\n')
 
-	override def from(input: InputStream): RawMessage = {
+	override def from(input: InputStream): Either[ReaderError, RawMessage] = {
 		implicit val buffer = ByteBuffer.allocate(trailingDot.length);
 		implicit val output = new ByteArrayOutputStream()
 
@@ -46,8 +47,8 @@ class RawMessageReader extends MessageReader[RawMessage, InputStream] {
 			.takeWhile { hasAvailable }
 			.takeWhile { hasContent }
 			.foreach { output.write(_) }) match {
-			case Success(_) => new RawMessage(output.toByteArray)
-			case Failure(e) => new RawMessage(Array[Byte]())
+			case Success(_) => Right(new SlicedRawMessage(output.toByteArray))
+			case Failure(e) => Left(GenericReaderError)
 		}
 	}
 
@@ -86,7 +87,7 @@ class RawMessageReader extends MessageReader[RawMessage, InputStream] {
 
 class MimeMessageReader extends MessageReader[MimeMessage, PushbackInputStream] {
 
-	override def from(input: PushbackInputStream): MimeMessage = {
+	override def from(input: PushbackInputStream): Either[ReaderError, MimeMessage] = {
 		val DEFAULT_BUFFER_SIZE: Int = 1500
 
 		implicit val readBuffer = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE)
@@ -94,7 +95,7 @@ class MimeMessageReader extends MessageReader[MimeMessage, PushbackInputStream] 
 
 		Stream.continually { fillBuffer(channel) }
 
-		new MimeMessage
+		Right(new MimeMessage)
 	}
 
 	private def fillBuffer(channel: ReadableByteChannel)(implicit readBuffer: ByteBuffer): Option[ByteBuffer] = {
@@ -164,6 +165,9 @@ class ComposingMimePartReader[T <: MimePart] extends MimePartReader[T] {
 
 }
 */
+
+sealed trait ReaderError
+case object GenericReaderError extends ReaderError
 
 sealed trait ParseError
 case object GenericError extends ParseError

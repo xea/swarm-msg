@@ -17,7 +17,8 @@ class MessageReaderSpec extends FunSpec {
 
 			val message = reader.from(input)
 
-			assert(message.length == 0)
+			assert(message.isRight)
+			assert(message.right.get.length == 0)
 		}
 
 		it ("should terminate messages at the trailing dot character") {
@@ -28,7 +29,8 @@ class MessageReaderSpec extends FunSpec {
 			val reader = new RawMessageReader
 			val message = reader.from(input)
 
-			assert(message.length == realMessage.length)
+			assert(message.isRight)
+			assert(message.right.get.length == realMessage.length)
 		}
 
 		it ("should read multiple message from the same stream") {
@@ -42,10 +44,14 @@ class MessageReaderSpec extends FunSpec {
 			val message2 = reader.from(input)
 			val message3 = reader.from(input)
 
-			assert(message0.length == message(0).length)
-			assert(message1.length == message(1).length)
-			assert(message2.length == message(2).length)
-			assert(message3.length == message(3).length)
+			assert(message0.isRight)
+			assert(message0.right.get.length == message(0).length)
+			assert(message1.isRight)
+			assert(message1.right.get.length == message(1).length)
+			assert(message2.isRight)
+			assert(message2.right.get.length == message(2).length)
+			assert(message3.isRight)
+			assert(message3.right.get.length == message(3).length)
 		}
 	}
 }
