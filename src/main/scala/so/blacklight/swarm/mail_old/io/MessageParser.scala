@@ -1,4 +1,4 @@
-package so.blacklight.swarm.mail.io
+package so.blacklight.swarm.mail_old.io
 
 import java.io.PushbackInputStream
 import java.nio.ByteBuffer

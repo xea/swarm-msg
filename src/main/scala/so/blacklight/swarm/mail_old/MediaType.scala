@@ -1,4 +1,4 @@
-package so.blacklight.swarm.mail
+package so.blacklight.swarm.mail_old
 
 /**
 	* Top-level media type is used to specify the general type of the data

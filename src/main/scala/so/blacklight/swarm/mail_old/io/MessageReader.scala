@@ -1,11 +1,11 @@
-package so.blacklight.swarm.mail.io
+package so.blacklight.swarm.mail_old.io
 
 import java.io.{ByteArrayOutputStream, InputStream, OutputStream, PushbackInputStream}
 import java.nio.ByteBuffer
 import java.nio.channels.{Channels, ReadableByteChannel}
 
-import so.blacklight.swarm.mail._
-import so.blacklight.swarm.mail.mime.MimeMessage
+import so.blacklight.swarm.mail_old._
+import so.blacklight.swarm.mail_old.mime.MimeMessage
 
 import scala.util.{Failure, Success, Try}
 
