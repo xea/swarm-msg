@@ -56,6 +56,7 @@ class MimeHeader(key: String, value: String) extends Header[String, String] {
 	*
 	* @param bytes original lines
 	*/
+/*
 class RawMessage(bytes: Array[Byte]) extends Message {
 
 	def length: Int = bytes.length
@@ -70,6 +71,7 @@ class SlicedRawMessage(bytes: Array[Byte]) extends RawMessage(bytes) {
 object SlicedRawMessage {
 	def apply(rawMessage: RawMessage): SlicedRawMessage = new SlicedRawMessage(rawMessage.getBytes)
 }
+*/
 
 /*
 class Utf8Message(lines: List[String]) extends Message {
@@ -78,3 +80,4 @@ class Utf8Message(lines: List[String]) extends Message {
 
 }
 */
+

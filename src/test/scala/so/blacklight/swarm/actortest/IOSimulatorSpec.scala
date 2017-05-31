@@ -56,7 +56,7 @@ class IOSimulatorSpec extends FunSpec {
 						try {
 							val _ = simulator.mayThrowException(rate)
 						} catch {
-							case _ => exceptionCount += 1
+							case _: Throwable => exceptionCount += 1
 						}
 					})
 
