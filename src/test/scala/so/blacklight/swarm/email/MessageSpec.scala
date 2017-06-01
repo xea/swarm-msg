@@ -1,6 +1,6 @@
 package so.blacklight.swarm.email
 
-import java.io.ByteArrayInputStream
+import java.io.File
 
 import org.scalatest.FunSpec
 
@@ -11,14 +11,16 @@ class MessageSpec extends FunSpec {
 
 	describe("RawMessage") {
 		it ("asdf") {
-			val inputStream = new ByteArrayInputStream(Array[Byte](9, 1, 2, 3, 4))
+			val startTime = System.currentTimeMillis()
+			val m = new FileContent(new File("input2.txt"))
 
-			val reader = () => {
-				inputStream.read().asInstanceOf[Byte]
-			}
+			//m.getContent foreach(println)
+			val result = m.getContent.length
 
-			lazy val out: Stream[Byte] = Stream.continually(reader).map(_())
+			val totalTime = System.currentTimeMillis() - startTime
 
+			println(result)
+			println(totalTime)
 		}
 	}
 }

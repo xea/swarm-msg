@@ -1,12 +1,57 @@
 package so.blacklight.swarm.email
 
-import java.io.InputStream
+import java.io.{BufferedInputStream, File, FileInputStream, InputStream}
+import java.nio.ByteBuffer
+import java.nio.channels.FileChannel
+import java.nio.file.StandardOpenOption
+
+import scala.util.Try
 
 trait Message[+T] {
 	def getContent: Stream[T]
 }
 
+abstract class InputStreamContent(inputStream: InputStream) extends Message[Byte] {
 
+	private def getDirectContent(is: InputStream): Stream[Byte] = {
+		Stream continually { () => is.read() } map { _() } takeWhile(_ > -1) map { _.asInstanceOf[Byte] }
+	}
+
+	protected def getBufferedContent: Stream[Byte] = getDirectContent(new BufferedInputStream(inputStream))
+
+}
+
+class FileContent(file: File) extends InputStreamContent(new FileInputStream(file)) {
+	override def getContent: Stream[Byte] = getBufferedContent
+}
+
+class FileContent2(file: File) extends Message[Byte] {
+	override def getContent: Stream[Byte] = getMappedContent
+
+	private def getMappedContent: Stream[Byte] = {
+		val mappedBuffer = FileChannel.open(file.toPath, StandardOpenOption.READ)
+		val readBuffer = ByteBuffer.allocate(65536)
+		readBuffer.flip()
+
+		def refillBuffer = {
+			readBuffer.clear()
+			mappedBuffer.read(readBuffer)
+			readBuffer.flip()
+		}
+
+		def isBufferEmpty = readBuffer.remaining() < 1
+
+		def readByte: Try[Byte] = {
+			if (isBufferEmpty) {
+				refillBuffer
+			}
+
+			Try(readBuffer.get)
+		}
+
+		Stream continually { () => readByte } map { _() } takeWhile { _.isSuccess } map { _.get }
+	}
+}
 
 /*
 class RawMessage(content: Stream[Byte]) extends Message[Byte] {
