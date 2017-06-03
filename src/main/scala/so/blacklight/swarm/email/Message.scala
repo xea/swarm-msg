@@ -11,6 +11,17 @@ trait Message[+T] {
 	def getContent: Stream[T]
 }
 
+trait MimePart {
+
+}
+
+trait MultiPart extends MimePart {
+	def getParts: Stream[MimePart]
+}
+
+
+
+/*
 abstract class InputStreamContent(inputStream: InputStream) extends Message[Byte] {
 
 	private def getDirectContent(is: InputStream): Stream[Byte] = {
@@ -21,16 +32,17 @@ abstract class InputStreamContent(inputStream: InputStream) extends Message[Byte
 
 }
 
-class FileContent(file: File) extends InputStreamContent(new FileInputStream(file)) {
+class BufferedFileContent(file: File) extends InputStreamContent(new FileInputStream(file)) {
 	override def getContent: Stream[Byte] = getBufferedContent
 }
 
-class FileContent2(file: File) extends Message[Byte] {
-	override def getContent: Stream[Byte] = getMappedContent
+class MappedFileContent(file: File) extends Message[Byte] {
 
-	private def getMappedContent: Stream[Byte] = {
+	private val BUFFER_SIZE: Int = 65536
+
+	override def getContent: Stream[Byte] = {
 		val mappedBuffer = FileChannel.open(file.toPath, StandardOpenOption.READ)
-		val readBuffer = ByteBuffer.allocate(65536)
+		val readBuffer = ByteBuffer.allocate(BUFFER_SIZE)
 		readBuffer.flip()
 
 		def refillBuffer = {
@@ -51,7 +63,9 @@ class FileContent2(file: File) extends Message[Byte] {
 
 		Stream continually { () => readByte } map { _() } takeWhile { _.isSuccess } map { _.get }
 	}
+
 }
+*/
 
 /*
 class RawMessage(content: Stream[Byte]) extends Message[Byte] {
