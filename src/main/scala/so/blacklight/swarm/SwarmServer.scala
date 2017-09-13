@@ -1,6 +1,6 @@
 package so.blacklight.swarm
 
-import akka.actor.{ActorSystem, Inbox, Props}
+import akka.actor.{ActorSystem, Inbox}
 /**
 	* Orchestrates the collection of defined services on a swarm node.
 	*/
